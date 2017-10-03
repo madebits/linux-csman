@@ -570,8 +570,7 @@ function createSessionStore()
 {
     local fs="${cskSessionLocation}"
     mkdir -p "$fs"
-    local tfs
-    tfs=$(mount | grep "$fs" | cut -d ' ' -f 1)
+    local tfs=$(mount | grep "$fs" | cut -d ' ' -f 1)
     if [ "${tfs}" != "tmpfs" ]; then
         logError "# session: creating tmpfs store in ${fs} (use -ar to choose another)"
         logError
