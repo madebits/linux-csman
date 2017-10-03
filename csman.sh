@@ -53,6 +53,7 @@ csmCreateOverwriteOnly="0"
 csmOpenDiskLabel=""
 csmFileCheckFreeSpace="1"
 embedSlot="1"
+csmOutFile=""
 
 ########################################################################
 
@@ -969,18 +970,16 @@ function increaseContainer()
 
 ########################################################################
 
-# infile [outfile]
+# infile
 function changePassword()
 {
     local ifile="$1"
     shift
-    local ofile="${1:-}"
+    processOptions "$@"
+    local ofile="${csmOutFile}"
     if [ -z "$ofile" ]; then
         ofile="$ifile"
-    else
-        shift
     fi
-    processOptions "$@"
     echo "# Decoding ${ifile} ..."
     local secret=$("${csmkeyTool}" dec "${ifile}" "${ckOptions[@]}" | base64 -w 0)
     if [ -z "${secret}" ]; then
@@ -1269,6 +1268,7 @@ Where [ openCreateOptions ]:
  -lk : (list) list raw keys
  -es slot : (embed|extract) slot to use (default 1)
  -q : (dc) no startup information
+ -out: (chp) output file
 Example:
  sudo csmap.sh open container.bin secret.bin -l -ck -k -h -p 8 -m 14 -t 1000 -- ---
 
@@ -1358,6 +1358,10 @@ function processOptions()
             ;;
             -es)
                 embedSlot="${2:-1}"
+                shift
+            ;;
+            -out)
+                csmOutFile="${2:?"! -out outFile"}"
                 shift
             ;;
             -l)
