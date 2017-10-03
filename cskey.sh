@@ -41,6 +41,7 @@ cskSessionSaveDecodePassFile=""
 cskRndLen="64"
 cskRndBatch="0"
 cskUseURandom="0"
+cskDecodeOffset="0"
 
 user="${SUDO_USER:-$(whoami)}"
 currentScriptPid=$$
@@ -224,7 +225,9 @@ function decodeSecret()
     fi
     
     if [ -e "$file" ] || [ "$file" = "-" ]; then
-        local fileData=$(head -c 600 -- "$file" | base64 -w 0)
+        debugData "Read at offset ${cskDecodeOffset:-0}"
+        local offset=$((${cskDecodeOffset:-0} + 1))
+        local fileData=$(tail -c +${offset} -- "$file" | head -c 600 | base64 -w 0)
         if [ "$file" != "-" ]; then
             touchFile "$file"
         fi
@@ -702,6 +705,8 @@ Options:
  -r length : (rnd) length of random bytes (default 64)
  -rb count : (rnd) generate file.count files
  -d : dump password and secret on stderr for debug
+ -o : (dec) read from offset in bytes, default 0
+ -os: (dec) read from slot, default 1 is same as -o 0 and -os 1 is same as -o 1024
 Examples:
 EOF
 echo ' sudo bash -c '"'"'secret=$(cskey.sh dec d.txt | base64 -w 0) && cskey.sh enc d.txt -s <(echo -n "$secret") -d'"'"''
@@ -837,6 +842,15 @@ function main()
                 cskRndBatch="${2:?"! -rb count"}"
                 checkNumber "$cskRndBatch"
                 shift
+            ;;
+            -o)
+                cskDecodeOffset="${2:-0}"
+                shift
+            ;;
+            -os)
+                local slot="${2:-1}"
+                shift
+                cskDecodeOffset=$((("$slot" - 1) * 1024))
             ;;
             *)
                 logError "! unknown option: $current"
