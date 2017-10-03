@@ -1053,13 +1053,20 @@ function dcCleanFreeDiskSpace()
     fi
     
     location="$(realpath -- "${location}")"
-    local tmp="${location}/csm-$RANDOM"
-    while [ -d "$tmp" ]; do
-        tmp="${location}/csm-$RANDOM"
-    done
+    location="${location}/csm-zero-tmp"
+    if [ -d "${location}" ]; then
+        if [ "${dcShowInfo}" = "1" ]; then
+            echo "Temporary folder ${location} exits"
+            read -p "Delete? [y] | [Enter to exit]: " deleteZeroTemp
+            if [ "${deleteZeroTemp}" != "y" ]; then
+                exit
+            fi
+        fi
+        rm -rf -- "${location}"
+    fi
     
     trap dcCleanUp 0 SIGHUP SIGINT SIGQUIT SIGTERM SIGABRT SIGQUIT 
-    dcDir="$tmp"
+    dcDir="${location}"
     mkdir -p "${dcDir}"
     local partition=$(df -P "${dcDir}" | tail -1 | tr -s ' ' | cut -d ' ' -f 1)
     dcInfo "${partition}"
