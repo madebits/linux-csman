@@ -212,25 +212,25 @@ function encodeSecret()
     if [ -z "${secret}" ]; then
         onFailed "no secret"
     fi
-    
+
     debugData "Pass:" "$pass" "Secret:" "$secret"
     local secretLength=$(encryptedSecretLength)
     # random file size
     local maxRndLength=$((1024 - $secretLength - 32))
     local r=$((RANDOM % $maxRndLength))
-        
+
     local salt
     salt=$(head -c 32 /dev/urandom | base64 -w 0)
     hash=$(pass2hash "$pass" "$salt")
-        
+
     if [ "$file" = "-" ]; then
         file="/dev/stdout"
         echo -n "$salt" | base64 -d >> "$file"
         echo -n "$secret" | base64 -d | encryptAes "$hash" >> "$file"
-        head -c "$r" /dev/urandom >> "$file" 
+        head -c "$r" /dev/urandom >> "$file"
         return
-    fi     
-    
+    fi
+
     if [ -f "$file" ]; then
         createDir "$file"
     fi
@@ -238,12 +238,12 @@ function encodeSecret()
         debugData "truncating $file if exists"
         > "$file"
     fi
-    
+
     #echo -n "$salt" | base64 -d >> "$file"
     local seek="${cskDecodeOffset:-0}"
     debugData "seek at byte ${seek}"
     echo -n "$salt" | base64 -d | dd status=none conv=notrunc bs=1 count=32 seek="$seek" of="$file"
-        
+
     #echo -n "$secret" | base64 -d | encryptAes "$hash" >> "$file"
     local length="$secretLength"
     seek=$(($seek + 32))
@@ -256,7 +256,7 @@ function encodeSecret()
     fi
     debugData "random suffix length ${r} of max ${maxRndLength} ($(($secretLength + 32)))"
     dd status=none conv=notrunc bs=1 count="$r" seek="$seek" if=/dev/urandom of="$file"
-    
+
     if [ -f "$file" ]; then
         ownFile "$file"
         touchFile "$file"
@@ -270,7 +270,7 @@ function decodeSecret()
     local pass="$2"
     local secretLength=$(encryptedSecretLength)
     local length=$(("$secretLength" + 32))
-    
+
     # weak shortcut, ok to use for something quick, once a while
     if [ "$1" = "--" ]; then
         # we put only part of pass hash in command line here!
@@ -279,7 +279,7 @@ function decodeSecret()
         pass2hash "$pass" "$sps"
         return
     fi
-    
+
     if [ -e "$file" ] || [ "$file" = "-" ]; then
         debugData "Read at offset ${cskDecodeOffset:-0}"
         local offset=$((${cskDecodeOffset:-0} + 1))
@@ -329,11 +329,11 @@ function readKeyFiles()
 {
     local count=0
     local keyFile=""
-    
+
     if [ "$cskNoKeyFiles" = "1" ] || [ -n "$cskSessionPassFile" ]; then
         return
     fi
-    
+
     while :
     do
         count=$((count+1))
@@ -413,7 +413,7 @@ function readPass()
         echo "$cskSessionPassFile"
         return
     fi
-    
+
     local hash=$(computeKeyFilesHash)
     local pass=$(readPassword "${1:-}")
     pass="${pass}${hash}"
@@ -444,7 +444,7 @@ function getSecret()
             logError "# secret: generating new, move mouse around if stuck"
             # 32 bytes from /dev/random are enough
             # but length matters anyway, so we use 512 byte keys
-            secret=$(cat <(head -c 480 /dev/urandom) <(head -c 32 /dev/random) | base64 -w 0)    
+            secret=$(cat <(head -c 480 /dev/urandom) <(head -c 32 /dev/random) | base64 -w 0)
         fi
     fi
     echo "${secret}"
@@ -456,11 +456,11 @@ function encodeMany()
     local f="$1"
     logError "# hashtool:" "${cskHashToolOptions[@]}"
     local secret="$3"
-    
+
     logError "${f}"
-    
+
     encodeSecret "${f}" "$2" "${secret}"
-    
+
     local count=$(($cskBackup + 0))
     if [ "$count" -gt "64" ]; then
         count=64
@@ -484,15 +484,15 @@ function encryptFile()
     if [ "$1" = "--" ]; then
         return
     fi
-    
+
     local file="$1"
     if [ "${file}" = "?" ]; then
         read -e -p "Secret file (or Enter if none): " file
         logError
-    elif [ "${file}" = "!" ]; then
-        file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
+    #elif [ "${file}" = "!" ]; then
+    #    file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
     fi
-    
+
     logError "# Encoding secret in: $file (at byte offset ${cskDecodeOffset:-0}, slot=$((${cskDecodeOffset:-0} / 1024 + 1))) (-c $useAes)"
     readKeyFiles
     local pass
@@ -510,8 +510,8 @@ function decryptFile()
     if [ "$file" = "?" ]; then
         read -e -p "Secret file (or Enter if none): " file
         logError
-    elif [ "$file" = "!" ]; then
-        file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
+    #elif [ "$file" = "!" ]; then
+    #    file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
     fi
     if [ -e "$file" ] || [ "$file" = "-" ]; then
         :
@@ -525,7 +525,7 @@ function decryptFile()
     if [ -n "${cskSessionSaveDecodePassFile}" ]; then
         createSessionPass "${cskSessionSaveDecodePassFile}" "$pass"
     fi
-    
+
     decodeSecret "$file" "$pass"
 }
 
@@ -554,7 +554,7 @@ function createSessionStore()
         logError
         mount -t tmpfs -o size=4m tmpfs "$fs"
     fi
-    
+
 }
 
 function readSessionPass()
@@ -739,7 +739,7 @@ function clearSessionTempDir()
         fi
         rmdir "${tfs}"
         set -e
-    fi 
+    fi
 }
 
 ########################################################################
@@ -752,13 +752,12 @@ For dec|enc in place of file any of can be used:
     -  stdout (dec) or stdin (enc)
     -- file is a shortcut not to use a secret file (weak)
     ?  read file path from console
-    !  read file via zenity (if present)
 Options:
  -i inputMode : (enc|dec|ses) used for password
     Password input modes:
      0 read from console, no echo (default)
-     1|echo|e read from console with echo
-     2|copy|c read from 'xclip -o -selection clipboard'
+     1|echo|e read from console with echo (-ie can also be used)
+     2|copy|c read from 'xclip -o -selection clipboard' (-ic can also be used)
  -c encryptMode : (enc|dec|ses) tool used to encrypt secret
     Use 1 aes tool, 2 aes tool authenticated, 3 gpg, 0 or any other value ccrypt
     By default, aes tool (1) is used if found (ensures the encrypted secret data look random)
@@ -803,15 +802,15 @@ function main()
         exit 1
     fi
     shift
-    
+
     if [ "$cskCmd" != "x" ]; then
         cskFile="${1:?"! file"}"
         shift
     fi
-    
+
     local apf=""
     local asf=""
-    
+
     while (( $# > 0 )); do
         local current="${1:-}"
         case "$current" in
@@ -821,6 +820,12 @@ function main()
             -i)
                 cskInputMode="${2:?"! -i inputMode"}"
                 shift
+            ;;
+            -ie)
+                cskInputMode="e"
+            ;;
+            -ic)
+                cskInputMode="c"
             ;;
             -b)
                 cskBackup="${2:?"! -b backupCount"}"
@@ -949,7 +954,7 @@ function main()
         esac
         shift
     done
-    
+
     case "$cskCmd" in
         enc|e)
             loadSessionPass "${apf}"
@@ -972,7 +977,7 @@ function main()
         ;;
         rnd|r)
             createRndFile "$cskFile"
-        ;;  
+        ;;
         *)
             logError "! unknown command: $cskCmd"
             showHelp

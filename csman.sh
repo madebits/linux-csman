@@ -630,8 +630,8 @@ function openContainer()
     if [ "${device}" = "?" ]; then
         read -e -p "Container file (or Enter if none): " device
         logError
-    elif [ "${device}" = "!" ]; then
-        device="$(zenity --file-selection --title='Select Container File' 2> /dev/null)"
+    #elif [ "${device}" = "!" ]; then
+    #    device="$(zenity --file-selection --title='Select Container File' 2> /dev/null)"
     fi
 
     checkArg "$device" "container"
@@ -1326,7 +1326,7 @@ function showHelp()
     cat << EOF
 Usage:
  $bn open|o device -s secret [ openCreateOptions ]
-   if device and / or secret are: ? read from command line, or ! zenity
+   if device and / or secret are: ? read it from command line
    ol  is same as open ... -l
    olr is same as open ... -l -r
  $bn close|c name
