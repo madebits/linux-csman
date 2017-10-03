@@ -459,8 +459,8 @@ function getSecret()
         else
             logError "# secret: generating new, move mouse around if stuck (or use -su)"
             # 32 bytes from /dev/random are enough
-            # but length matters anyway, so we use 512 + 256 byte keys
-            secret=$(cat <(head -c 480 /dev/urandom) <(head -c 32 /dev/random) | base64 -w 0)
+            # but length matters, so we use 512 byte passwords
+            secret=$(cat <(head -c 16 /dev/random) <(head -c 480 /dev/urandom) <(head -c 16 /dev/random) | base64 -w 0)
         fi
     fi
     echo "${secret}"
