@@ -605,9 +605,21 @@ function openContainerByName()
         cro="--readonly"
     fi
 
+    local key1="$key"
+    local key2="$key"
+    local keyLen=$(echo -n $key | base64 -d | wc -c)
+    if [ $keyLen -gt 512 ]; then
+        key1=$(echo -n $key | base64 -d | head -c 512 | base64 -w 0)
+        key2=$(echo -n $key | base64 -d | tail -c +513 | base64 -w 0)
+    fi
+
+    #echo "Key : ${key} @(${keyLen})"
+    #echo "Key1: $key1"
+    #echo "Key2: $key2"
+
     local dev="$(getDevice "$name" "0")"
     echo "Opening ${dev} ..."
-    echo -n "$key" | base64 -d | cryptsetup --type plain -c aes-xts-plain64 -s 512 -h sha512 --shared $cro "${csOptions[@]}" open "${device}" "${name}" -
+    echo -n "${key1}" | base64 -d | cryptsetup --type plain -c aes-xts-plain64 -s 512 -h sha512 --shared $cro "${csOptions[@]}" open "${device}" "${name}" -
     cryptsetup status "${dev}"
     local lastDev="${dev}"
 
@@ -616,7 +628,7 @@ function openContainerByName()
         local dev1="$(getDevice "$name" "1")"
         echo "Opening ${dev1} ..."
         set +e
-        echo -n "${key}" | base64 -d | cryptsetup --type plain -c twofish-cbc-essiv:sha256 -s 256 -h sha512 $cro "${csiOptions[@]}" open "${dev}" "${name1}" -
+        echo -n "${key2}" | base64 -d | cryptsetup --type plain -c twofish-cbc-essiv:sha256 -s 256 -h sha512 $cro "${csiOptions[@]}" open "${dev}" "${name1}" -
         if [ "$?" != "0" ]; then
             closeContainerByName "$name"
             failed
