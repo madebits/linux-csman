@@ -1205,7 +1205,7 @@ function embedSecretInSlot()
     local secretFile="$3"
 
     if [ "$secretFile" = "-" ]; then
-        log "Storing secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * 2))) of device ${containerFile}"
+        log "Storing secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * 2))) of container ${containerFile}"
         cat - | dd status=none conv=notrunc bs=1024 count=1 seek="$seek" of="$containerFile" > /dev/null
         return
     fi
@@ -1214,7 +1214,7 @@ function embedSecretInSlot()
         onFailed "-s secret file required"
     fi
 
-    log "Storing secret ${secretFile} in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * 2))) of device ${containerFile}"
+    log "Storing secret ${secretFile} in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * 2))) of container ${containerFile}"
     dd status=none conv=notrunc bs=1024 count=1 seek="$seek" if="$secretFile" of="$containerFile" > /dev/null
 }
 
