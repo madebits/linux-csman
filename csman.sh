@@ -253,7 +253,7 @@ function umountContainer()
     local mntDir1=$(mntDirRoot "$name")
     local mntDir2=$(mntDirUser "$name")
     local lastError=""
-    
+
     if [ -d "$mntDir2" ]; then
         set +e
         mountpoint "${mntDir2}" &>/dev/null
@@ -296,7 +296,7 @@ function mountContainer()
     local name=$(validName "${1:-}")
     local mntDir1=$(mntDirRoot "$name")
     local mntDir2=$(mntDirUser "$name")
-    
+
     # check for inner one first
     local hasInner="1"
     local dev="$(getDevice "$name" "1")"
@@ -307,7 +307,7 @@ function mountContainer()
     if [ ! -e "$dev" ]; then
         onFailed "no mapper device: $name"
     fi
-        
+
     local ro=""
     if [ "$cmsMountReadOnly" = "1" ]; then
         echo "# mounting read-only"
@@ -318,7 +318,7 @@ function mountContainer()
         echo "# mounting with exec option"
         ex="-o exec"
     fi
-    
+
     mkdir -p "$mntDir1"
     set +e
     mount ${ro} -o users ${ex} "$dev" "$mntDir1"
@@ -340,7 +340,7 @@ function mountContainer()
 function closeContainerByName()
 {
     local name=$(validName "${1:-}")
-    
+
     local dev="$(getDevice "$name" "1")"
     if [ -e "$dev" ]; then
         if [ -z "$lastContainer" ]; then
@@ -462,7 +462,7 @@ function listContainer()
     if [ -z "$container" ]; then
         return
     fi
-    
+
     local mode="$(getMode "$name")"
     local cipher=""
     echo -e "File:\t$container\t$mode"
@@ -498,7 +498,7 @@ function listContainer()
     local mntDir1=$(mntDirRoot "$name")
     local mntDir2=$(mntDirUser "$name")
     if [ -d "$mntDir1" ]; then
-        
+
         local m="$(mount | grep "$mntDir1")"
         if [ -n "$m" ]; then
             m="mounted"
@@ -569,7 +569,7 @@ function setVolumeLabel()
                 fi
             fi
         fi
-        
+
         set +e
         label="$(e2label "$lastDev" 2> /dev/null)"
         set -e
@@ -585,21 +585,21 @@ function openContainerByName()
     local key="$1"
     local name="$2"
     local device="$3"
-    
+
     umountDevice "${device}"
-    
+
     local cro=""
     if [ "$cmsMountReadOnly" = "1" ]; then
         echo "# opening read-only"
         cro="--readonly"
     fi
-    
+
     local dev="$(getDevice "$name" "0")"
     echo "Opening ${dev} ..."
     echo -n "$key" | base64 -d | cryptsetup --type plain -c aes-xts-plain64 -s 512 -h sha512 --shared $cro "${csOptions[@]}" open "${device}" "${name}" -
     cryptsetup status "${dev}"
     local lastDev="${dev}"
-    
+
     if [ "$csmChain" = "1" ]; then
         local name1="$(innerName "$name")"
         local dev1="$(getDevice "$name" "1")"
@@ -614,7 +614,7 @@ function openContainerByName()
         cryptsetup status "${dev1}"
         lastDev="${dev1}"
     fi
-    
+
     setVolumeLabel "$lastDev" "$device"
 }
 
@@ -644,31 +644,31 @@ function openContainer()
         onFailed "cannot open: $device"
     fi
     shift
-    
+
     isContainerFileOpen "$device"
     if [ -n "$csmIsContainerFileOpen" ]; then
         listContainer ${csmIsContainerFileOpen}
         logError
         onFailed "${device} is already open (${csmIsContainerFileOpen})"
     fi
-    
+
     #local secret="${1:-}"
     #checkArg "$secret" "secret"
     #shift
-    
+
     processOptions "$@"
     local secret="$csmSecretFile"
     if [ -z "$secret" ]; then
         secret="$device"
     fi
     checkArg "$secret" "-s secret"
-    
+
     if [ -n "$csmName" ]; then
         name=$(validName "${csmName}")
         lastName="$name"
         oName=${name:4}
     fi
-    
+
     echo "Reading ${device} secret from (${secret}) using ($name)"
     local key
     local res
@@ -683,13 +683,13 @@ function openContainer()
     #touchFile "$lastSecret" "$lastSecretTime"
     clearScreen
     openContainerByName "$key" "$name" "$device"
-    
+
     if [ "$csmMount" = "1" ]; then
         mountContainer "$name"
     fi
     echo "To close use:"
     echo "$(basename -- "$0") close ${oName}"
-    echo "$(basename -- "$0") closeAll"    
+    echo "$(basename -- "$0") closeAll"
 }
 
 ########################################################################
@@ -791,11 +791,11 @@ function createContainer()
 {
     local name
     name=$(validName "-")
-    
+
     local container="${1:-}"
     checkArg "$container" "container"
-    shift  
-    
+    shift
+
     local blockDevice="0"
     local writeContainer="1"
     local overwriteContainer=""
@@ -825,25 +825,25 @@ function createContainer()
             onFailed "nothing to do"
         fi
     fi
-    
+
     processOptions "$@"
-    
+
     local size="${csmContainerSize:-0}"
     checkArg "$size" "size"
     local sizeNum="${size: : -1}"
     checkNumber "$sizeNum" " : container size in M or G"
-    
+
     local secret="$csmSecretFile"
     if [ -z "$secret" ] && [ -n "$slotCount" ] && [ "$slotCount" -gt "0" ] ; then
         echo "# no separate secret file"
         secret="$container"
     fi
     checkArg "$secret" "-s secret"
-    
+
     if [ "${csmCreateOverwriteOnly}" = "1" ]; then
         echo "# mode: overwrite only"
     fi
-    
+
     if [ "$writeContainer" = "1" ]; then
         if [ "$blockDevice" = "1" ]; then
             if [ "$sizeNum" -gt 0 ]; then
@@ -864,9 +864,9 @@ function createContainer()
             if [ "$sizeNum" -le 0 ]; then
                 onFailed "Invalid size: ${size}"
             fi
-            
+
             checkFreeSpace "${size}" "${sizeNum}"
-    
+
             echo "Creating ${container} with ${sizeNum}${size: -1} ..."
             createDir "${container}"
             if [ "${size: -1}" = "G" ]; then
@@ -881,12 +881,12 @@ function createContainer()
     else
         echo "Reusing existing data (size ${size} will be ingored): $container"
     fi
-    
+
     if [ "${csmCreateOverwriteOnly}" = "1" ]; then
         echo "# mode: overwrite only: done"
         return
     fi
-    
+
     if [ -f "$secret" ] && [ "$secret" != "--" ] && [ ! "$container" -ef "$secret" ]; then
         lastSecret="$secret"
         lastSecretTime=$(stat -c %z "$secret")
@@ -899,9 +899,9 @@ function createContainer()
     else
         createSecret "$secret"
     fi
-    
+
     clearScreen
-    
+
     echo "(Re-)enter password to open the container ${container} for formating (existing data, if any, will be lost) ..."
     local key
     local res
@@ -917,7 +917,7 @@ function createContainer()
     clearScreen
     touchFile "$lastSecret" "$lastSecretTime"
     openContainerByName "$key" "$name" "$container"
-    
+
     local dev
     dev="$(getDevice "$name" "1")"
     if [ ! -e "$dev" ]; then
@@ -932,7 +932,7 @@ function createContainer()
     echo "Created file system."
     sleep 1
     closeContainerByName "$name"
-    
+
     if [ -n "$secret" ] && [ "$secret" != "--" ] && [ -f "$secret" ] && [ -n "$slotCount" ] && [ "$slotCount" -gt "0" ] && [ ! "$container" -ef "$secret" ] ; then
         embedSecretOnCreate "${secret}" "1" "${container}"
         embedSecretOnCreate "${secret}.01" "2" "${container}"
@@ -940,7 +940,7 @@ function createContainer()
         embedSecretOnCreate "${secret}.03" "4" "${container}"
         echo
     fi
-    
+
     echo "Done! To open container use:"
     if [ -n "$slotCount" ] && [ "$slotCount" -gt "0" ] ; then
         echo "$(basename -- "$0") open ${container} [options]"
@@ -955,7 +955,7 @@ function embedSecretOnCreate()
     local slot="$2"
     local container="$3"
     local check=$(("$slot"-1))
-    
+
     if [ "$slotCount" -gt "$check" ] && [ -f "${secret}" ]; then
         echo "# Embedding ${secret} in slot ${slot}/${slotCount} of ${container} (${secret} file can be removed or backed-up manually)"
         embedSecretInSlot "$container" "$slot" "$secret"
@@ -983,7 +983,7 @@ function resizeContainer()
         local iName="$(innerName "$name")"
         cryptsetup resize "${iName}"
     fi
-    
+
     if [ -n "$lastDev" ]; then
         resize2fs "$lastDev"
     fi
@@ -1049,7 +1049,7 @@ function changePassword()
         resetTime
         onFailed "cannot get secret from ${ifile}"
     fi
-    
+
     if (( ! ${#ckOptions2[@]} )); then
         echo "# using same options for encode"
         ckOptions2=( "${ckOptions[@]}" )
@@ -1073,14 +1073,14 @@ function copyDir()
     srcParent="$(dirname -- "${srcFull}")"
     local srcDir
     srcDir="$(basename -- ${srcFull})"
-    
+
     local totalSize
     totalSize="$( du -cs -BK --apparent-size "${src}" |
               tail -n 1 |
               cut -d "$(echo -e "\t")" -f 1)"
-    local totalSizeNum=${totalSize::-1}          
+    local totalSizeNum=${totalSize::-1}
     echo "Copy: ${srcFull}: ${totalSize} ~ $(( totalSizeNum / 1024 ))M ~ $(( totalSizeNum/1024/1024 ))G => $(realpath -- "${dst}")/${srcDir}"
-    
+
     mkdir -p -- "${dst}"
     time tar -cf - -C "${srcParent}" "${srcDir}" |
         pv -s "${totalSize}" |
@@ -1148,7 +1148,7 @@ function dcCleanFreeDiskSpace()
     else
         location=.
     fi
-    
+
     location="$(realpath -- "${location}")"
     location="${location}/csm-zero-tmp"
     if [ -d "${location}" ]; then
@@ -1161,8 +1161,8 @@ function dcCleanFreeDiskSpace()
         fi
         rm -rf -- "${location}"
     fi
-    
-    trap dcCleanUp 0 SIGHUP SIGINT SIGQUIT SIGTERM SIGABRT SIGQUIT 
+
+    trap dcCleanUp 0 SIGHUP SIGINT SIGQUIT SIGTERM SIGABRT SIGQUIT
     dcDir="${location}"
     mkdir -p "${dcDir}"
     local partition
@@ -1171,7 +1171,7 @@ function dcCleanFreeDiskSpace()
     dcStart=$(date +%s)
     echo -e "Using folder ${dcDir}\nOverwriting free partition space in ${partition}"
     echo -e "May take some time. Press Ctrl+C to stop:\n\n"
-   
+
     dcPrintAvailable
     while : ; do
         count=$((count+1))
@@ -1217,7 +1217,7 @@ function embedSecret()
         onFailed "container file required"
     fi
     shift
-    
+
     processOptions "$@"
     local slot=${embedSlot:-1}
     #local secretFile="$csmSecretFile"
@@ -1246,13 +1246,13 @@ function embedSecretInSlot()
         cat - | dd status=none conv=notrunc bs=1024 count=1 seek="$seek" of="$containerFile" > /dev/null
         return
     fi
-    
+
     if [ "$secretFile" = "*RANDOM*" ]; then
         log "Removing any secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * "$slotOffsetFactor"))) of container ${containerFile}"
         dd status=none conv=notrunc bs=1024 count=1 seek="$seek" if="/dev/urandom" of="$containerFile" > /dev/null
         return
     fi
-    
+
     if [ ! -f "$secretFile" ]; then
         onFailed "-s secret file required"
     fi
@@ -1268,18 +1268,18 @@ function extractSecret()
         onFailed "container file required"
     fi
     shift
-    
+
     processOptions "$@"
-    
+
     local slot=${embedSlot:-1}
     local skip=$(("$slot" - 1))
     local secretFile="$csmSecretFile"
-    
+
     if [ "$secretFile" = "-" ]; then
         dd status=none bs=1024 count=1 skip="$skip" if="$containerFile"
         return
     fi
-    
+
     if [ -z "$secretFile" ]; then
         onFailed "-s secret file required"
     fi
@@ -1364,7 +1364,7 @@ Where [ options ]:
  -size|-S : (create) size of container in M or G
  -co cryptsetup options -- : outer encryption layer
  -ci cryptsetup options -- : inner encryption layer
- -ck $kn options --"
+ -ck $kn options -- (@ $kn options @ can also be used)"
  -cko $kn options -- : only for use with chp output
  -cf mkfs ext4 options -- : (create)
  -live|-l : (open) live
@@ -1421,10 +1421,10 @@ function processOptions()
                     set -e
                 done
             ;;
-            -ck)
+            -ck|@)
                 shift
                 ckOptions=()
-                while [ "${1:-}" != "--" ]; do
+                while [ "${1:-}" != "--" ] && [ "${1:-}" != "@" ]; do
                     ckOptions+=( "${1:-}" )
                     set +e
                     shift
@@ -1518,7 +1518,7 @@ function processOptions()
             ;;
             -e|-exe|-exec)
                 cmsMountExec="1"
-            ;;  
+            ;;
             -lk)
                 csmListShowKey="1"
             ;;
@@ -1592,7 +1592,7 @@ function main()
             fi
         ;;
         #openNamed|openName|on)
-        #    openContainer "$@"  
+        #    openContainer "$@"
         #;;
         close|c)
             closeContainer "$1"
@@ -1604,7 +1604,7 @@ function main()
             umountContainer "$1"
         ;;
         create|n|new)
-            createContainer "$@"            
+            createContainer "$@"
         ;;
         x)
             set +e
