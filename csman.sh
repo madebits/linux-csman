@@ -915,11 +915,19 @@ function createContainer()
     sleep 1
     closeContainerByName "$name"
     
-    if [ -n "$lastSecret" ] && [ -n "$slotCount" ] && [ "$slotCount" != "0" ]; then
-        echo "# Embedding ${secret} in first slot of ${container} (${secret} file can be removed or backed-up manually)"
+    if [ -n "$secret" ] && [ "$secret" != "--" ] && [ -f "$secret" ] && [ -n "$slotCount" ] && [ "$slotCount" != "0" ]; then
+        echo "# Embedding ${secret} in slot=1 of ${container} (${secret} file can be removed or backed-up manually)"
         embedSecret "$container"
         touchFile "$lastSecret" "$lastSecretTime"
         # backup copy
+        local secretCopy="${secret}.01"
+        if [ "$slotCount" > "1" ] && [ -f "${secretCopy}" ]; then
+            echo "# Embedding backup ${secretCopy} in slot=2 of ${container} (${secretCopy} file can be removed or backed-up manually)"
+            csmSecret="${secretCopy}"
+            embedSlot=2
+            embedSecret "$container"
+            touchFile "${secretCopy}" "$lastSecretTime"
+        fi
     fi
     
     echo "Done! To open container use:"
