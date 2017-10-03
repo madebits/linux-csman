@@ -207,13 +207,6 @@ function decodeSecret()
         return
     fi
     
-    if [ "$file" = "?" ]; then
-        read -e -p "Secret file (or Enter if none): " file
-        logError
-    elif [ "$file" = "!" ]; then
-        file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
-    fi
-    
     if [ -e "$file" ] || [ "$file" = "-" ]; then
         local fileData=$(head -c 600 -- "$file" | base64 -w 0)
         if [ "$file" != "-" ]; then
@@ -389,12 +382,6 @@ function encodeMany()
     logError "# hashtool:" "${cskHashToolOptions[@]}"
     local secret="$3"
     
-    if [ "${f}" = "?" ]; then
-        read -e -p "Secret file (or Enter if none): " f
-        logError
-    elif [ "${f}" = "!" ]; then
-        f="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
-    fi
     logError "${f}"
     
     encodeSecret "${f}" "$2" "${secret}"
@@ -421,23 +408,41 @@ function encryptFile()
     if [ "$1" = "--" ]; then
         return
     fi
-    logError "# Encoding secret in: $1"
+    
+    local file="$1"
+    if [ "${file}" = "?" ]; then
+        read -e -p "Secret file (or Enter if none): " file
+        logError
+    elif [ "${file}" = "!" ]; then
+        file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
+    fi
+    
+    logError "# Encoding secret in: $file"
     readKeyFiles
     local pass=$(readNewPass)
     local secret=$(getSecret)
-    encodeMany "$1" "$pass" "$secret"
+    encodeMany "$file" "$pass" "$secret"
     logError "# Done"
 }
 
 # file
 function decryptFile()
 {
+    local file="$1"
+    if [ "$file" = "?" ]; then
+        read -e -p "Secret file (or Enter if none): " file
+        logError
+    elif [ "$file" = "!" ]; then
+        file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
+    fi
+
     readKeyFiles
     local pass=$(readPass)
     if [ -n "${cskSessionSaveDecodePassFile}" ]; then
         createSessionPass "${cskSessionSaveDecodePassFile}" "$pass"
     fi
-    decodeSecret "$1" "$pass"
+    
+    decodeSecret "$file" "$pass"
 }
 
 ########################################################################
