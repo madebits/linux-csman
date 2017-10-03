@@ -429,7 +429,8 @@ function readPassword()
         pass="$cskPassFile"
     elif [ "$cskInputMode" = "1" ] || [ "$cskInputMode" = "e" ] || [ "$cskInputMode" = "echo" ]; then
         read -p "Password: " pass
-        logError
+        reset
+        logError "..."
     elif [ "$cskInputMode" = "2" ] || [ "$cskInputMode" = "c" ] || [ "$cskInputMode" = "copy" ]; then
         pass=$(xclip -o -selection clipboard)
     else
