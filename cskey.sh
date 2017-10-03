@@ -12,7 +12,14 @@ IFS=$' \t\n'
 set -eu -o pipefail
 
 if [ $(id -u) != "0" ]; then
-    (>&2 echo "! using sudo recommended")
+    case "${1:-}" in
+        rnd)
+        ;;
+        *)
+            (>&2 echo "! using sudo recommended")
+        ;;
+    esac
+
 fi
 
 # none of values in this file is secret
@@ -38,7 +45,7 @@ cskSessionLocation="$HOME/mnt/tmpcsm"
 cskSessionPassFile=""
 cskSessionSecretFile=""
 cskSessionSaveDecodePassFile=""
-cskRndLen="64"
+cskRndLen=""
 cskRndBatch="0"
 cskUseURandom="0"
 cskDecodeOffset="0"
@@ -635,7 +642,12 @@ function loadSessionSecret()
 function createRndFile()
 {
     local file="$1"
-    if [ "$file" = "-" ]; then file="/dev/stdout"; fi 
+    if [ "$file" = "-" ]; then file="/dev/stdout"; fi
+    if [ -z "$cskRndLen" ]; then
+        local secretLength=$(encryptedSecretLength)
+        local maxRndLength=$((1024 - $secretLength))
+        cskRndLen=$(($secretLength + 1 + RANDOM % $maxRndLength))
+    fi
     head -c "$cskRndLen" /dev/urandom > "$file"
     if [ "$1" != "-" ]; then
         local count=$(($cskRndBatch + 0))

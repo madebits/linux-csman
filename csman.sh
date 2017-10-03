@@ -1191,7 +1191,7 @@ function embedSecret()
         embedSecretInSlot "$containerFile" "$count" "$secretFile"
         count=$((count+1))
     done
-    log Done
+    logq Done
 }
 
 # container slot secretFile
