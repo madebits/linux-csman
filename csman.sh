@@ -1436,10 +1436,16 @@ function processOptions()
             ;;
             -es|-slot)
                 embedSlot="${2:-?"! -slot number"}"
+                if [ "$embedSlot" -lt "1" ]; then
+                    onFailed "-slot number should be >= 1"
+                fi
                 shift
             ;;
             -sc|-slots)
                 slotCount="${2:?"! -slots count"}"
+                if [ "$slotCount" -lt "0" ]; then
+                    onFailed "-slots count should be >= 0"
+                fi
                 shift
             ;;
             -s0)

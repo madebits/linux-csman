@@ -48,7 +48,7 @@ cskSessionSaveDecodePassFile=""
 cskRndLen=""
 cskRndBatch="0"
 cskUseURandom="0"
-cskDecodeOffset="0"
+cskDecodeOffset=""
 
 user="${SUDO_USER:-$(whoami)}"
 currentScriptPid=$$
@@ -195,6 +195,7 @@ function encodeSecret()
     fi
     
     debugData "Pass:" "$pass" "Secret:" "$secret"
+    local secretLength=$(encryptedSecretLength)
     
     local salt=$(head -c 32 /dev/urandom | base64 -w 0)
     hash=$(pass2hash "$pass" "$salt")
@@ -204,14 +205,33 @@ function encodeSecret()
     fi
     
     createDir "$file"
-    > "$file"
-    echo -n "$salt" | base64 -d >> "$file"
-    echo -n "$secret" | base64 -d | encryptAes "$hash" >> "$file"
+    if [ -z "$cskDecodeOffset" ]; then
+        debugData "truncating $file if exists"
+        > "$file"
+    fi
+    #echo -n "$salt" | base64 -d >> "$file"
+    local seek="${cskDecodeOffset:-0}"
+    debugData "seek at byte ${seek}"
+    echo -n "$salt" | base64 -d | dd status=none conv=notrunc bs=1 count=32 seek="$seek" of="$file"
+    
+    #echo -n "$secret" | base64 -d | encryptAes "$hash" >> "$file"
+    local length="$secretLength"
+    seek=$(($seek + 32))
+    echo -n "$secret" | base64 -d | encryptAes "$hash" | dd status=none conv=notrunc bs=1 count="$length" seek="$seek" of="$file"
+    seek=$(($seek + $length))
+    
     # random file size
-    local secretLength=$(encryptedSecretLength)
-    local maxRndLength=$((1024 - $secretLength))
+    
+    local maxRndLength=$((1024 - $secretLength - 32))
     local r=$((RANDOM % $maxRndLength))
-    head -c "$r" /dev/urandom >> "$file"
+
+    #head -c "$r" /dev/urandom >> "$file"
+    if [ -n "$cskDecodeOffset" ]; then
+        r="$maxRndLength"
+    fi
+    debugData "random suffix length ${r} of max ${maxRndLength} ($(($secretLength + 32)))"
+    dd status=none conv=notrunc bs=1 count="$r" seek="$seek" if=/dev/urandom of="$file"
+    
     ownFile "$file"
     touchFile "$file"
 }
@@ -717,11 +737,12 @@ Options:
  -r length : (rnd) length of random bytes (default random <= 1024)
  -rb count : (rnd) generate file.count files
  -d : dump password and secret on stderr for debug
- -o : (dec) read from offset in bytes, default 0
- -os|-es|-slot slot: (dec) read from slot, default 1 is same as -o 0 and -os 1 is same as -o 1024
+ -o : (enc|dec) write/read to/from offset in bytes, default 0
+      if not set enc truncates output file, if set even if zero enc does not truncate and pads to 1024 length
+ -os|-es|-slot slot: (enc|dec) use slot, default 1 is same as -o 0 and -os 1 is same as -o 1024
 Examples:
 EOF
-echo ' sudo bash -c '"'"'secret=$(cskey.sh dec d.txt | base64 -w 0) && cskey.sh enc d.txt -s <(echo -n "$secret") -d'"'"''
+echo ' sudo bash -c '"'"'secret=$(cskey.sh dec d.txt | base64 -w 0) && cskey.sh enc d.txt -s <(echo -n "$secret")'"'"''
 } >&2
 
 # cmd file options
@@ -857,10 +878,16 @@ function main()
             ;;
             -o)
                 cskDecodeOffset="${2:-0}"
+                if [ "$cskDecodeOffset" -lt "0" ]; then
+                    onFailed "-o should be >= 0"
+                fi
                 shift
             ;;
             -os|-es|-slot)
                 local slot="${2:-1}"
+                if [ "$slot" -lt "1" ]; then
+                    onFailed "-slot number should be >= 1"
+                fi
                 shift
                 cskDecodeOffset=$((("$slot" - 1) * 1024))
             ;;
