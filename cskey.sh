@@ -207,8 +207,18 @@ function decodeSecret()
         return
     fi
     
+    if [ "$file" = "?" ]; then
+        read -e -p "Secret file (or Enter if none): " file
+        logError
+    elif [ "$file" = "!" ]; then
+        file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
+    fi
+    
     if [ -e "$file" ] || [ "$file" = "-" ]; then
         local fileData=$(head -c 600 -- "$file" | base64 -w 0)
+        if [ "$file" != "-" ]; then
+            touchFile "$file"
+        fi
         if [ -z "$fileData" ]; then
             onFailed "cannot read: $file"
         fi
@@ -256,7 +266,7 @@ function readKeyFiles()
     do
         count=$((count+1))
         if [ "$cskInputMode" = "!" ] || [ "$cskInputMode" = "4" ]; then
-			set +e
+            set +e
             keyFile="$(zenity --file-selection --title='Key File (press Cancel when done)' 2> /dev/null)"
             set -e
         else
@@ -375,10 +385,19 @@ function getSecret()
 # file pass secret
 function encodeMany()
 {
+    local f="$1"
     logError "# hashtool:" "${cskHashToolOptions[@]}"
-    logError "$1"
     local secret="$3"
-    encodeSecret "$1" "$2" "${secret}"
+    
+    if [ "${f}" = "?" ]; then
+        read -e -p "Secret file (or Enter if none): " f
+        logError
+    elif [ "${f}" = "!" ]; then
+        f="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
+    fi
+    logError "${f}"
+    
+    encodeSecret "${f}" "$2" "${secret}"
     
     local count=$(($cskBackup + 0))
     if [ "$count" -gt "64" ]; then
@@ -387,7 +406,7 @@ function encodeMany()
     for ((i=1 ; i <= $count; i++))
     {
         local pad=$(printf "%02d" ${i}) # printf -v padd "..."
-        local file="${1}.${pad}"
+        local file="${f}.${pad}"
         logError "$file"
         if [ "$cskBackupNewSecret" = "1" ]; then
             secret=$(getSecret)
@@ -631,7 +650,10 @@ function showHelp()
 {
     cat << EOF
 Usage: $(basename -- "$0") [enc | dec | ses | rnd | x] file [options]
-Using -- for dec|enc file is a shortcut not to use a secret file (weak)
+For dec|enc in place of file any of can be used:
+    --  file is a shortcut not to use a secret file (weak)
+    ? read file path from console
+    ! read file via zenity
 Options:
  -i inputMode : (enc|dec|ses) used for password
     Password input modes:

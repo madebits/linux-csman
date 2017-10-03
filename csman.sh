@@ -603,9 +603,13 @@ function openContainer()
     shift
 
     local device="${1:-}"
-    if [ "$device" = "!" ]; then
+    if [ "${device}" = "?" ]; then
+        read -e -p "Container file (or Enter if none): " device
+        logError
+    elif [ "${device}" = "!" ]; then
         device="$(zenity --file-selection --title='Select Container File' 2> /dev/null)"
     fi
+
     checkArg "$device" "container"
     lastContainer="$device"
     if [ -f "$device" ]; then
@@ -625,18 +629,7 @@ function openContainer()
     fi
     
     local secret="${1:-}"
-    if [ "$secret" = "!" ]; then
-        secret="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
-    fi
     checkArg "$secret" "secret"
-    lastSecret="$secret"
-    if [ -f "$secret" ] && [ "$secret" != "--" ]; then
-        lastSecretTime=$(stat -c %z "$secret")
-    fi
-    if [ ! -e "$secret" ] && [ "$secret" != "--" ]; then
-        resetTime
-        onFailed "cannot open: $secret"
-    fi
     shift
     
     processOptions "$@"
@@ -647,12 +640,13 @@ function openContainer()
         oName=${name:4}
     fi
     
-    echo "Reading ${device} secret from ${secret} ($name)"
+    echo "Reading ${device} secret from (${secret}) using ($name)"
     local key=$("${csmkeyTool}" dec "$secret" "${ckOptions[@]}" | base64 -w 0)
     if [ -z "$key" ]; then
+        resetTime
         onFailed "cannot get secret"
     fi
-    touchFile "$lastSecret" "$lastSecretTime"
+    #touchFile "$lastSecret" "$lastSecretTime"
     clearScreen
     openContainerByName "$key" "$name" "$device"
     
@@ -1147,7 +1141,7 @@ function showHelp()
     cat << EOF
 Usage:
  $bn open|o device secret [ openCreateOptions ]
-  if device and / or secret are ! zenity is used
+  if device and / or secret are: ? read from command line or ! zenity
  $bn close|c name
  $bn closeAll|ca
  $bn list|l
