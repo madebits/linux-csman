@@ -915,23 +915,30 @@ function createContainer()
     sleep 1
     closeContainerByName "$name"
     
-    if [ -n "$secret" ] && [ "$secret" != "--" ] && [ -f "$secret" ] && [ -n "$slotCount" ] && [ "$slotCount" != "0" ]; then
-        echo "# Embedding ${secret} in slot=1 of ${container} (${secret} file can be removed or backed-up manually)"
-        embedSecret "$container"
-        touchFile "$lastSecret" "$lastSecretTime"
-        # backup copy
-        local secretCopy="${secret}.01"
-        if [ "$slotCount" > "1" ] && [ -f "${secretCopy}" ]; then
-            echo "# Embedding backup ${secretCopy} in slot=2 of ${container} (${secretCopy} file can be removed or backed-up manually)"
-            csmSecret="${secretCopy}"
-            embedSlot=2
-            embedSecret "$container"
-            touchFile "${secretCopy}" "$lastSecretTime"
-        fi
+    if [ -n "$secret" ] && [ "$secret" != "--" ] && [ -f "$secret" ] && [ -n "$slotCount" ] && [ "$slotCount" -gt "0" ]; then
+        embedSecretOnCreate "${secret}" "1" "${container}"
+        embedSecretOnCreate "${secret}.01" "2" "${container}"
+        embedSecretOnCreate "${secret}.02" "3" "${container}"
+        embedSecretOnCreate "${secret}.03" "4" "${container}"
+        echo
     fi
     
     echo "Done! To open container use:"
     echo "$(basename -- "$0") open ${container} -s ${secret} (options)"
+}
+
+function embedSecretOnCreate()
+{
+    local secret="$1"
+    local slot="$2"
+    local container="$3"
+    local check=$(("$slot"-1))
+    
+    if [ "$slotCount" -gt "$check" ] && [ -f "${secret}" ]; then
+        echo "# Embedding ${secret} in slot ${slot}/${slotCount} of ${container} (${secret} file can be removed or backed-up manually)"
+        embedSecretInSlot "$container" "$slot" "$secret"
+        touchFile "${secret}" "$lastSecretTime"
+    fi
 }
 
 ########################################################################
@@ -1173,14 +1180,27 @@ function embedSecret()
     shift
     
     processOptions "$@"
-    
     local slot=${embedSlot:-1}
     local seek=$(("$slot" - 1))
     local secretFile="$csmSecretFile"
+        
+    embedSecretInSlot "$containerFile" "$slot" "$secretFile"
+    log Done
+}
+
+function embedSecretInSlot()
+{
+    local containerFile="$1"
+    if [ ! -e "$containerFile" ]; then
+        onFailed "container file required"
+    fi
+    local slot="$2"
+    local seek=$(("$slot" - 1))
+    local secretFile="$3"
 
     if [ "$secretFile" = "-" ]; then
         log "Storing secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * 2))) of device ${containerFile}"
-        cat - | dd conv=notrunc bs=1024 count=1 seek="$seek" of="$containerFile" > /dev/null
+        cat - | dd status=none conv=notrunc bs=1024 count=1 seek="$seek" of="$containerFile" > /dev/null
         return
     fi
     
@@ -1189,8 +1209,7 @@ function embedSecret()
     fi
 
     log "Storing secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * 2))) of device ${containerFile}"
-    dd conv=notrunc bs=1024 count=1 seek="$seek" if="$secretFile" of="$containerFile" > /dev/null
-    log Done
+    dd status=none conv=notrunc bs=1024 count=1 seek="$seek" if="$secretFile" of="$containerFile" > /dev/null
 }
 
 function extractSecret()
@@ -1208,7 +1227,7 @@ function extractSecret()
     local secretFile="$csmSecretFile"
     
     if [ "$secretFile" = "-" ]; then
-        dd bs=1024 count=1 skip="$skip" if="$containerFile"
+        dd status=none bs=1024 count=1 skip="$skip" if="$containerFile"
         return
     fi
     
@@ -1217,7 +1236,7 @@ function extractSecret()
     fi
 
     log "Saving secret from slot ${slot} at byte offset $(("$skip" * 1024)) (cryptsetup -o $(("$skip" * 2))) to ${secretFile}"
-    dd bs=1024 count=1 skip="$skip" if="$containerFile" of="$secretFile" > /dev/null
+    dd status=none bs=1024 count=1 skip="$skip" if="$containerFile" of="$secretFile" > /dev/null
     log Done
 }
 
