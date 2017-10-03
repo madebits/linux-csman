@@ -610,13 +610,16 @@ function createRndFile()
 
 function clearSessionTempDir()
 {
-   local tfs="$HOME/mnt/tmpcsm"
+    local tfs="$HOME/mnt/tmpcsm"
     if [ -d "${tfs}" ]; then
         set +e
-        fuser -km "${tfs}"
-        sleep 1
-        umount "${tfs}" 2> /dev/null
-        logError "# umount: ${tfs}"
+        mountpoint "${tfs}" &>/dev/null
+        if [ "$?" = "0" ]; then
+            fuser -km "${tfs}"
+            sleep 1
+            umount "${tfs}" 2> /dev/null
+            logError "# umount: ${tfs}"
+        fi
         rmdir "${tfs}"
         set -e
     fi 

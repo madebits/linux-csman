@@ -229,20 +229,32 @@ function umountContainer()
     local mntDir2=$(mntDirUser "$name")
     
     if [ -d "$mntDir2" ]; then
-        set +e
-        fuser -km "$mntDir2"
-        set -e
-        sleep 1
-        umount "$mntDir2" && rmdir "$mntDir2"
+        mountpoint "${mntDir2}" &>/dev/null
+        if [ "$?" = "0" ]; then
+            set +e
+            fuser -km "$mntDir2"
+            set -e
+            sleep 1
+            umount "$mntDir2" && rmdir "$mntDir2"
+        else
+            rmdir "$mntDir2"
+        fi
     fi
     if [ -d "$mntDir1" ]; then
-        set +e
-        fuser -km "$mntDir1"
-        set -e
-        sleep 1
-        set +e
-        umount "$mntDir1" && rmdir "$mntDir1"
-        set -e
+        mountpoint "${mntDir1}" &>/dev/null
+        if [ "$?" = "0" ]; then
+            set +e
+            fuser -km "$mntDir1"
+            set -e
+            sleep 1
+            set +e
+            umount "$mntDir1" && rmdir "$mntDir1"
+            set -e
+        else
+            set +e
+            rmdir "$mntDir1"
+            set -e
+        fi
     fi
 }
 
