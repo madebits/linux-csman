@@ -753,7 +753,8 @@ Options:
  -d : dump password and secret on stderr for debug
  -t : (enc) truncate output file, applied only if not -o or -slot
  -o offset : (enc|dec) write/read to/from offset in bytes, default 0
-      if not set and -t enc truncates output file, if set even if zero enc does not truncate and pads to 1024 length
+      if not set ent -t truncates output file
+      if set, even if zero, enc does not truncate and pads to 1024 length
  -slot|-os|-es slot: (enc|dec) use slot, default 1 is same as -o 0 and -os 1 is same as -o 1024
 Examples:
 EOF
