@@ -54,10 +54,10 @@ cskTruncate="0"
 user="${SUDO_USER:-$(whoami)}"
 currentScriptPid=$$
 toolsDir="$(dirname $0)"
-useAes="0"
-if [ -f "${toolsDir}/aes" ]; then
-    useAes="1"
-fi
+useAes="1"
+#if [ -f "${toolsDir}/aes" ]; then
+#    useAes="1"
+#fi
 
 ########################################################################
 
@@ -144,11 +144,13 @@ function encryptedSecretLength()
     if [ "$useAes" = "1" ]; then
         echo 624
     elif [ "$useAes" = "2" ]; then
-        echo 560
+        echo 544
     elif [ "$useAes" = "3" ]; then
         echo 587
+    #elif [ "$useAes" = "4" ]; then
+    #    echo 560
     else
-        echo 544
+        onFailed "invalid -c $useAes"
     fi
 }
 
@@ -158,11 +160,13 @@ function encryptAes()
     if [ "$useAes" = "1" ]; then
         "${toolsDir}/aes" -c 1000000 -r /dev/urandom -e -f <(echo -n "$pass")
     elif [ "$useAes" = "2" ]; then
-        "${toolsDir}/aes" -a -m -c 5000000 -r /dev/urandom -e -f <(echo -n "$pass")
+        ccrypt -e -f -k <(echo -n "$pass")
     elif [ "$useAes" = "3" ]; then
         gpg -o - --batch --quiet --yes --passphrase-file <(echo -n "$pass") --s2k-mode 3 --s2k-count 65011712 --s2k-digest-algo SHA512 --s2k-cipher-algo AES256 --symmetric -
+    #elif [ "$useAes" = "4" ]; then
+    #    "${toolsDir}/aes" -a -m -c 5000000 -r /dev/urandom -e -f <(echo -n "$pass")
     else
-        ccrypt -e -f -k <(echo -n "$pass")
+        onFailed "invalid -c $useAes"
     fi
 }
 
@@ -172,11 +176,13 @@ function decryptAes()
     if [ "$useAes" = "1" ]; then
         "${toolsDir}/aes" -c 1000000 -d -f <(echo -n "$pass")
     elif [ "$useAes" = "2" ]; then
-        "${toolsDir}/aes" -a -m -c 5000000 -d -f <(echo -n "$pass")
+        ccrypt -d -k <(echo -n "$pass")
     elif [ "$useAes" = "3" ]; then
         gpg -o - --batch --quiet --yes --passphrase-file <(echo -n "$pass") -d -
+    #elif [ "$useAes" = "4" ]; then
+    #    "${toolsDir}/aes" -a -m -c 5000000 -d -f <(echo -n "$pass")
     else
-        ccrypt -d -k <(echo -n "$pass")
+        onFailed "invalid -c $useAes"
     fi
 }
 
@@ -779,8 +785,7 @@ Options:
      1|echo|e read from console with echo (-ie can also be used)
      2|copy|c read from 'xclip -o -selection clipboard' (-ic can also be used)
  -c encryptMode : (enc|dec|ses) tool used to encrypt secret
-    Use 1 aes tool, 2 aes tool authenticated, 3 gpg, 0 or any other value ccrypt
-    By default, aes tool (1) is used if found (ensures the encrypted secret data look random)
+    Use 1 for aes tool (default), 2 for crypt, 3 for gpg
     Ecrypted data of both ccrypt and gpg have indentifying bytes
  -p passFile : (enc|dec|ses) read pass from first line in passFile
  -ap @file : (enc|dec) session: read pass from encrypted file (see -apo)
