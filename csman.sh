@@ -1191,7 +1191,7 @@ function embedSecret()
         embedSecretInSlot "$containerFile" "$count" "$secretFile"
         count=$((count+1))
     done
-    logq Done
+    log Done
 }
 
 # container slot secretFile
@@ -1334,10 +1334,11 @@ Where [ options ]:
  -sfc : (create) skip free disk space check for files
  -oo : (create) dd only
  -lk : (list) list raw keys
+ -sc|-slots slots : overwrites -co -o parameter (default 4, use 0 for no slots)
+ -s0 : same as -slots 0
  -es|-slot slot : (embed|extract) slot to use (default 1)
  -q : (dc) no startup information
  -out: (chp) output file
- -sc|-slots slots : overwrites -co -o parameter (default 4, use 0 for no slots)
 Example:
  sudo csmap.sh open container.bin -s secret.bin -l -ck -k -h -p 8 -m 14 -t 1000 -- ---
 
@@ -1426,12 +1427,15 @@ function processOptions()
                 shift
             ;;
             -es|-slot)
-                embedSlot="${2:-1}"
+                embedSlot="${2:-?"! -slot number"}"
                 shift
             ;;
             -sc|-slots)
-                slotCount="${2:-1}"
+                slotCount="${2:?"! -slots count"}"
                 shift
+            ;;
+            -s0)
+                slotCount="0"
             ;;
             -out)
                 csmOutFile="${2:?"! -out outFile"}"
@@ -1479,7 +1483,7 @@ function processOptions()
     if [ -z "$slotCount" ]; then
         slotCount="4"
     fi
-    if [ "$slotCount" != "0" ]; then
+    if [ "$slotCount" -gt "0" ]; then
         local offset=$(("$slotCount" * "$slotOffsetFactor"))
         local count="-1"
         local found=""
