@@ -484,7 +484,7 @@ function listContainer()
         set +e
         local label="$(e2label "$dev" 2> /dev/null)"
         set -e
-        echo -e "Device (1):\t${dev}\t${cipher}\t${label}\t@ ${offset}"
+        echo -e "Device (1):\t${dev}\t${cipher} @${offset}\t${label}"
         if [ "$csmListShowKey" = "1" ]; then
             local k=$(getDmKey "$dev")
             echo -e "RawKey:\t$k"
@@ -499,7 +499,7 @@ function listContainer()
         set +e
         local label="$(e2label "$dev" 2> /dev/null)"
         set -e
-        echo -e "Device (2):\t${dev}\t${cipher}\tLABEL: ${label:-<no label>}\t@ ${offset}"
+        echo -e "Device (2):\t${dev}\t${cipher} @${offset}\t${label}"
         if [ "$csmListShowKey" = "1" ]; then
             local k=$(getDmKey "$dev")
             echo -e "RawKey:\t$k"
