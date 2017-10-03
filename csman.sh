@@ -11,19 +11,21 @@ IFS=$' \t\n'
 
 set -eu -o pipefail
 
-if [ $(id -u) != "0" ]; then
-    case "${1:-}" in
-        cp|rsync|dc|dcq|d|disk|disks)
-        ;;
-        *)
-            #(>&2 echo "! needs sudo")
-            #exit 1
-            #pass="$(zenity --password --title='Sudo Password' 2> /dev/null)"
-            #exec echo "$pass" | sudo -S "$0" "$@"
-            exec /usr/bin/sudo -S "$0" "$@"
-            exit $?
-        ;;
-    esac
+if [ "$#" -gt "0" ]; then
+    if [ $(id -u) != "0" ]; then
+        case "${1:-}" in
+            cp|rsync|dc|dcq|d|disk|disks)
+            ;;
+            *)
+                #(>&2 echo "! needs sudo")
+                #exit 1
+                #pass="$(zenity --password --title='Sudo Password' 2> /dev/null)"
+                #exec echo "$pass" | sudo -S "$0" "$@"
+                exec /usr/bin/sudo -S "$0" "$@"
+                exit $?
+            ;;
+        esac
+    fi
 fi
 
 user="${SUDO_USER:-$(whoami)}"
@@ -1173,7 +1175,9 @@ function showHelp()
     cat << EOF
 Usage:
  $bn open|o device secret [ openCreateOptions ]
-  if device and / or secret are: ? read from command line, or ! zenity
+   if device and / or secret are: ? read from command line, or ! zenity
+   ol  is same as open ... -l
+   olr is same as open -l -r
  $bn close|c name
  $bn closeAll|ca
  $bn list|l
@@ -1183,21 +1187,21 @@ Usage:
    size should end in M or G
  $bn resize|r name
  $bn increase|i name bySize
-    bySize should end in M or G
+  bySize should end in M or G
  $bn touch|t fileOrDir [time]
-    if set, time has to be in format: "$(date +"%F %T.%N %z")"
+   if set, time has to be in format: "$(date +"%F %T.%N %z")"
  $bn synctime|st
  $bn chp inFile [outFile] [ openCreateOptions ] : only -ck -cko are used
  $bn k ... : invoke $kn ...
  $bn cp src dstDir
-    can be used without sudo, needs pv
+   can be used without sudo, needs pv
  $bn rsync src dst
-    can be used without sudo, needs rsync
+   can be used without sudo, needs rsync
  $bn dc dir
-    can be used without sudo, default dir is .
-    clean free disk space in partition having dir
+   can be used without sudo, default dir is .
+   clean free disk space in partition having dir
  $bn d|disk|disks
-    can be used without sudo, runs df and lsblk
+   can be used without sudo, runs df and lsblk
 Where [ openCreateOptions ]:
  -co cryptsetup options --- : outer encryption layer
  -ci cryptsetup options --- : inner encryption layer
@@ -1216,7 +1220,7 @@ Where [ openCreateOptions ]:
  -sfc : (create) skip free disk space check for files
  -oo : (create) dd only
 Example:
- sudo csmap.sh open container.bin -l -ck -k -h -p 8 -m 14 -t 1000 -- ---
+ sudo csmap.sh open container.bin secret.bin -l -ck -k -h -p 8 -m 14 -t 1000 -- ---
 
 EOF
 } >&2
