@@ -1269,6 +1269,7 @@ Where [ openCreateOptions ]:
  -es slot : (embed|extract) slot to use (default 1)
  -q : (dc) no startup information
  -out: (chp) output file
+ -sc|-slots slots : overwrites -co -o parameter
 Example:
  sudo csmap.sh open container.bin secret.bin -l -ck -k -h -p 8 -m 14 -t 1000 -- ---
 
@@ -1277,6 +1278,7 @@ EOF
 
 function processOptions()
 {
+    local slotCount=""
     while (( $# > 0 )); do
         local current="${1:-}"
         case "$current" in
@@ -1360,6 +1362,10 @@ function processOptions()
                 embedSlot="${2:-1}"
                 shift
             ;;
+            -sc|-slots)
+                slotCount="${2:-1}"
+                shift
+            ;;
             -out)
                 csmOutFile="${2:?"! -out outFile"}"
                 shift
@@ -1397,6 +1403,24 @@ function processOptions()
         esac
         shift
     done
+    
+    if [ -n "$slotCount" ]; then
+        local offset=$(($slotCount * 2))
+        local count="-1"
+        local found=""
+        for option in "${csOptions[@]}"; do
+            count=$((count+1))
+            if [ "$option" = "-o" ]; then
+                count=$((count+1))
+                csOptions[$count]="$offset"
+                found="1"
+                break
+            fi
+        done
+        if [ -z "$found" ]; then
+            csOptions+=( "-o" "$offset" )
+        fi
+    fi
 }
 
 function main()
