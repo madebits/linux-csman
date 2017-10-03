@@ -848,7 +848,7 @@ function main()
                 cskDecodeOffset="${2:-0}"
                 shift
             ;;
-            -os|es)
+            -os|-es)
                 local slot="${2:-1}"
                 shift
                 cskDecodeOffset=$((("$slot" - 1) * 1024))
