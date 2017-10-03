@@ -670,7 +670,8 @@ function openContainer()
     fi
     
     echo "Reading ${device} secret from (${secret}) using ($name)"
-    local key=$("${csmkeyTool}" dec "$secret" "${ckOptions[@]}" | base64 -w 0)
+    local key
+    key=$("${csmkeyTool}" dec "$secret" "${ckOptions[@]}" | base64 -w 0)
     if [ -z "$key" ]; then
         resetTime
         onFailed "cannot get secret"
@@ -756,8 +757,10 @@ function checkFreeSpace()
     fi
     local size="$1"
     local sizeNum="$2"
-    local dir="$(dirname -- "$(realpath -- "${container}")")"
-    local availMb=$(df --block-size=1 --output=avail "${dir}" | tail -n 1)
+    local dir
+    dir="$(dirname -- "$(realpath -- "${container}")")"
+    local availMb
+    availMb=$(df --block-size=1 --output=avail "${dir}" | tail -n 1)
     availMb=$((availMb / 1024 / 1024))
     if [ "${size: -1}" = "G" ]; then
         availMb=$((availMb / 1024)) #gb
@@ -769,7 +772,8 @@ function checkFreeSpace()
 
 function getDeviceSize()
 {
-    local size=$(blockdev --getsize64 "$1")
+    local size
+    size=$(blockdev --getsize64 "$1")
     size=$((size / 1024 / 1024)) # MB
     if (( size > 1024 )); then
         echo -n "$((size / 1024))G"
@@ -781,7 +785,8 @@ function getDeviceSize()
 # name secret container size rest
 function createContainer()
 {
-    local name=$(validName "-")
+    local name
+    name=$(validName "-")
     
     local container="${1:-}"
     checkArg "$container" "container"
@@ -803,7 +808,8 @@ function createContainer()
     fi
     if [ -b "$container" ]; then
         blockDevice="1"
-        local bSize=$(getDeviceSize "${container}")
+        local bSize
+        bSize=$(getDeviceSize "${container}")
         echo "Are you sure to encrypt block device: ${bSize} ${container}"
         echo "Size parameter will be ingored for block devices"
         read -p "Overwrite? [y (overwrite) | e (create filesystem only) | Enter to exit]: " overwriteContainer
@@ -893,7 +899,8 @@ function createContainer()
     clearScreen
     
     echo "(Re-)enter password to open the container ${container} for formating (existing data, if any, will be lost) ..."
-    local key=$("${csmkeyTool}" dec "$secret" "${ckOptions[@]}" | base64 -w 0)
+    local key
+    key=$("${csmkeyTool}" dec "$secret" "${ckOptions[@]}" | base64 -w 0)
     if [ -z "$key" ]; then
         onFailed "cannot get secret"
     fi
@@ -902,7 +909,8 @@ function createContainer()
     touchFile "$lastSecret" "$lastSecretTime"
     openContainerByName "$key" "$name" "$container"
     
-    local dev="$(getDevice "$name" "1")"
+    local dev
+    dev="$(getDevice "$name" "1")"
     if [ ! -e "$dev" ]; then
         dev="$(getDevice "$name" "0")"
     fi
@@ -951,8 +959,10 @@ function embedSecretOnCreate()
 # name
 function resizeContainer()
 {
-    local name=$(validName "${1:-}")
-    local dev="$(getDevice "$name" "0")"
+    local name
+    name=$(validName "${1:-}")
+    local dev
+    dev="$(getDevice "$name" "0")"
     local lastDev=""
     if [ -e "$dev" ]; then
         lastDev="$dev"
@@ -973,7 +983,8 @@ function resizeContainer()
 # only works for full G/M blocks
 function increaseContainer()
 {
-    local name=$(validName "${1:-}")
+    local name
+    name=$(validName "${1:-}")
     shift
     local size="${1:-}"
     checkArg "$size" "size"
@@ -985,7 +996,8 @@ function increaseContainer()
     if [ ! -f "$container" ]; then
         onFailed "no such container file ${container}"
     fi
-    local currentSize=$(stat -c "%s" "$container")
+    local currentSize
+    currentSize=$(stat -c "%s" "$container")
     if [ "${size: -1}" = "G" ]; then
         local sizeG=$(($currentSize / (1024 * 1024 * 1024)))
         if [ "$sizeG" = "0" ]; then # keep it simple
@@ -1018,7 +1030,8 @@ function changePassword()
         ofile="$ifile"
     fi
     echo "# Decoding ${ifile} ..."
-    local secret=$("${csmkeyTool}" dec "${ifile}" "${ckOptions[@]}" | base64 -w 0)
+    local secret
+    secret=$("${csmkeyTool}" dec "${ifile}" "${ckOptions[@]}" | base64 -w 0)
     if [ -z "${secret}" ]; then
         onFailed "cannot decode secret from ${ifile}"
     fi
@@ -1039,11 +1052,15 @@ function copyDir()
     checkArg "$src" "src"
     checkArg "$dst" "dstDir"
 
-    local srcFull="$(realpath -- "${src}")"
-    local srcParent="$(dirname -- "${srcFull}")"
-    local srcDir="$(basename -- ${srcFull})"
+    local srcFull
+    srcFull="$(realpath -- "${src}")"
+    local srcParent
+    srcParent="$(dirname -- "${srcFull}")"
+    local srcDir
+    srcDir="$(basename -- ${srcFull})"
     
-    local totalSize="$( du -cs -BK --apparent-size "${src}" |
+    local totalSize
+    totalSize="$( du -cs -BK --apparent-size "${src}" |
               tail -n 1 |
               cut -d "$(echo -e "\t")" -f 1)"
     local totalSizeNum=${totalSize::-1}          
@@ -1133,7 +1150,8 @@ function dcCleanFreeDiskSpace()
     trap dcCleanUp 0 SIGHUP SIGINT SIGQUIT SIGTERM SIGABRT SIGQUIT 
     dcDir="${location}"
     mkdir -p "${dcDir}"
-    local partition=$(df -P "${dcDir}" | tail -1 | tr -s ' ' | cut -d ' ' -f 1)
+    local partition
+    partition=$(df -P "${dcDir}" | tail -1 | tr -s ' ' | cut -d ' ' -f 1)
     dcInfo "${partition}"
     dcStart=$(date +%s)
     echo -e "Using folder ${dcDir}\nOverwriting free partition space in ${partition}"

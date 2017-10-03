@@ -142,6 +142,8 @@ function encryptedSecretLength()
     if [ "$useAes" = "1" ]; then
         echo 560
     elif [ "$useAes" = "2" ]; then
+        echo 624
+    elif [ "$useAes" = "3" ]; then
         echo 587
     else
         echo 544
@@ -151,6 +153,7 @@ function encryptedSecretLength()
 function encryptAes()
 {
     local pass="$1"
+    local error="0"
     if [ "$useAes" = "1" ]; then
         "${toolsDir}/aes" -m -c 5000000 -r /dev/urandom -e -f <(echo -n "$pass")
     elif [ "$useAes" = "2" ]; then
@@ -165,11 +168,12 @@ function encryptAes()
 function decryptAes()
 {
     local pass="$1"
+    local error="0"
     if [ "$useAes" = "1" ]; then
         "${toolsDir}/aes" -m -c 5000000 -d -f <(echo -n "$pass")
     elif [ "$useAes" = "2" ]; then
         "${toolsDir}/aes" -a -c 1000000 -d -f <(echo -n "$pass")
-    elif [ "$useAes" = "2" ]; then
+    elif [ "$useAes" = "3" ]; then
         gpg -o - --batch --quiet --yes --passphrase-file <(echo -n "$pass") -d -
     else
         ccrypt -d -k <(echo -n "$pass")
