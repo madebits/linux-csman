@@ -1,2 +1,3 @@
-# csman
-2019 CSMan
+# CSMan
+
+https://madebits.github.io/#r/linux-csman.md
