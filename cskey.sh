@@ -210,7 +210,7 @@ function encodeSecret()
     # random file size
     local secretLength=$(encryptedSecretLength)
     local maxRndLength=$((1024 - $secretLength))
-    local r=$((1 + RANDOM % $maxRndLength))
+    local r=$((RANDOM % $maxRndLength))
     head -c "$r" /dev/urandom >> "$file"
     ownFile "$file"
     touchFile "$file"
@@ -646,7 +646,7 @@ function createRndFile()
     if [ -z "$cskRndLen" ]; then
         local secretLength=$(encryptedSecretLength)
         local maxRndLength=$((1024 - $secretLength))
-        cskRndLen=$(($secretLength + 1 + RANDOM % $maxRndLength))
+        cskRndLen=$(($secretLength + RANDOM % $maxRndLength))
     fi
     head -c "$cskRndLen" /dev/urandom > "$file"
     if [ "$1" != "-" ]; then
@@ -714,7 +714,7 @@ Options:
  -ar file : (enc|dec|ses) session: use file data as part of session seed, created if not exists ($cskSessionLocation)
  -aa : (enc|dec|ses) session: do not ask for session key (use default)
  -ak file : (enc|dec|ses) session: read session key from file
- -r length : (rnd) length of random bytes (default 64)
+ -r length : (rnd) length of random bytes (default random <= 1024)
  -rb count : (rnd) generate file.count files
  -d : dump password and secret on stderr for debug
  -o : (dec) read from offset in bytes, default 0
