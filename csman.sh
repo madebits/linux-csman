@@ -962,6 +962,7 @@ function changePassword()
 
 ########################################################################
 
+# https://unix.stackexchange.com/questions/65077/is-it-possible-to-see-cp-speed-and-percent-copied
 function copyDir()
 {
     local src="${1:-}"
