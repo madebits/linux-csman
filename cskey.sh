@@ -197,34 +197,39 @@ function encodeSecret()
     
     debugData "Pass:" "$pass" "Secret:" "$secret"
     local secretLength=$(encryptedSecretLength)
-    
+    # random file size
+    local maxRndLength=$((1024 - $secretLength - 32))
+    local r=$((RANDOM % $maxRndLength))
+        
     local salt=$(head -c 32 /dev/urandom | base64 -w 0)
     hash=$(pass2hash "$pass" "$salt")
-    
+        
     if [ "$file" = "-" ]; then
         file="/dev/stdout"
-    fi
+        echo -n "$salt" | base64 -d >> "$file"
+        echo -n "$secret" | base64 -d | encryptAes "$hash" >> "$file"
+        head -c "$r" /dev/urandom >> "$file" 
+        return
+    fi     
     
-    createDir "$file"
-    if [ -z "$cskDecodeOffset" ] && [ "$cskTruncate" = "1" ] ; then
+    if [ -f "$file" ]; then
+        createDir "$file"
+    fi
+    if [ -z "$cskDecodeOffset" ] && [ "$cskTruncate" = "1" ] && [ -f "$file"] ; then
         debugData "truncating $file if exists"
         > "$file"
     fi
+    
     #echo -n "$salt" | base64 -d >> "$file"
     local seek="${cskDecodeOffset:-0}"
     debugData "seek at byte ${seek}"
     echo -n "$salt" | base64 -d | dd status=none conv=notrunc bs=1 count=32 seek="$seek" of="$file"
-    
+        
     #echo -n "$secret" | base64 -d | encryptAes "$hash" >> "$file"
     local length="$secretLength"
     seek=$(($seek + 32))
     echo -n "$secret" | base64 -d | encryptAes "$hash" | dd status=none conv=notrunc bs=1 count="$length" seek="$seek" of="$file"
     seek=$(($seek + $length))
-    
-    # random file size
-    
-    local maxRndLength=$((1024 - $secretLength - 32))
-    local r=$((RANDOM % $maxRndLength))
 
     #head -c "$r" /dev/urandom >> "$file"
     if [ -n "$cskDecodeOffset" ]; then
@@ -233,8 +238,10 @@ function encodeSecret()
     debugData "random suffix length ${r} of max ${maxRndLength} ($(($secretLength + 32)))"
     dd status=none conv=notrunc bs=1 count="$r" seek="$seek" if=/dev/urandom of="$file"
     
-    ownFile "$file"
-    touchFile "$file"
+    if [ -f "$file" ]; then
+        ownFile "$file"
+        touchFile "$file"
+    fi
 }
 
 # file pass
