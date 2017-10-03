@@ -16,10 +16,11 @@ if [ $(id -u) != "0" ]; then
         cp|rsync|dc|dcq|d|disk|disks)
         ;;
         *)
-            (>&2 echo "! needs sudo")
+            #(>&2 echo "! needs sudo")
             #exit 1
-            pass="$(zenity --password --title='Sudo Password' 2> /dev/null)"
-            exec echo "$pass" | sudo -S "$0" "$@"
+            #pass="$(zenity --password --title='Sudo Password' 2> /dev/null)"
+            #exec echo "$pass" | sudo -S "$0" "$@"
+            exec sudo -S "$0" "$@"
             exit $?
         ;;
     esac
