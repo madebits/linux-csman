@@ -272,14 +272,14 @@ function readKeyFiles()
     while :
     do
         count=$((count+1))
-        if [ "$cskInputMode" = "!" ] || [ "$cskInputMode" = "4" ]; then
-            set +e
-            keyFile="$(zenity --file-selection --title='Key File (press Cancel when done)' 2> /dev/null)"
-            set -e
-        else
+        #if [ "$cskInputMode" = "!" ] || [ "$cskInputMode" = "4" ]; then
+        #    set +e
+        #    keyFile="$(zenity --file-selection --title='Key File (press Cancel when done)' 2> /dev/null)"
+        #    set -e
+        #else
             read -e -p "Key file $count (or Enter if none): " keyFile
             logError
-        fi
+        #fi
         if [ ! -f "$keyFile" ]; then
             break
         fi
@@ -322,10 +322,6 @@ function readPassword()
         logError
     elif [ "$cskInputMode" = "2" ] || [ "$cskInputMode" = "c" ]; then
         pass=$(xclip -o -selection clipboard)
-    elif [ "$cskInputMode" = "3" ] || [ "$cskInputMode" = "u" ] || [ "$cskInputMode" = "!" ]; then
-        pass="$(zenity --password --title="Password" 2> /dev/null)"
-    elif [ "$cskInputMode" = "4" ]; then
-        pass="$(zenity --entry --title="Password" --text="Password (visible):"  2> /dev/null)"
     else
         read -p "Password: " -s pass
         logError
@@ -685,8 +681,6 @@ Options:
      0 read from console, no echo (default)
      1|e read from console with echo
      2|c read from 'xclip -o -selection clipboard'
-     3|u|! read from 'zenity --password'
-     4 read from 'zenity --text'
  -c encryptMode : (enc|dec|ses) use 1 for aes tool, 0 or any other value uses ccrypt
  -p passFile : (enc|dec|ses) read pass from first line in passFile
  -ap file : (enc|dec) session: read pass from encrypted file (see -apo), other pass input options are ignored

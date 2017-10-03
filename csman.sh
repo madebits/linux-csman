@@ -1173,7 +1173,7 @@ function showHelp()
     cat << EOF
 Usage:
  $bn open|o device secret [ openCreateOptions ]
-  if device and / or secret are: ? read from command line or ! zenity
+  if device and / or secret are: ? read from command line, or ! zenity
  $bn close|c name
  $bn closeAll|ca
  $bn list|l
