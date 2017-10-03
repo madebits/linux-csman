@@ -1185,7 +1185,7 @@ function embedSecret()
     processOptions "$@"
     local slot=${embedSlot:-1}
     #local secretFile="$csmSecretFile"
-    
+
     local count="$slot"
     for secretFile in "${csmSecretFiles[@]}"; do
         embedSecretInSlot "$containerFile" "$count" "$secretFile"
@@ -1206,7 +1206,7 @@ function embedSecretInSlot()
     local secretFile="$3"
 
     if [ "$secretFile" = "-" ]; then
-        log "Storing secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * "$slotOffsetFactor"))) of container ${containerFile}"
+        #log "Storing secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * "$slotOffsetFactor"))) of container ${containerFile}"
         cat - | dd status=none conv=notrunc bs=1024 count=1 seek="$seek" of="$containerFile" > /dev/null
         return
     fi
@@ -1500,9 +1500,9 @@ function processOptions()
 
 function main()
 {
-    showChecksum
     local mode="${1:-}"
     if [ -z "$mode" ]; then
+        showChecksum
         showHelp
         exit 1
     fi
@@ -1602,6 +1602,7 @@ function main()
             extractSecret "$@"
         ;;
         *)
+            showChecksum
             showHelp
         ;;
     esac
