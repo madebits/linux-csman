@@ -49,6 +49,7 @@ cskRndLen=""
 cskRndBatch="0"
 cskUseURandom="0"
 cskDecodeOffset=""
+cskTruncate="0"
 
 user="${SUDO_USER:-$(whoami)}"
 currentScriptPid=$$
@@ -205,7 +206,7 @@ function encodeSecret()
     fi
     
     createDir "$file"
-    if [ -z "$cskDecodeOffset" ]; then
+    if [ -z "$cskDecodeOffset" ] && [ "$cskTruncate" = "1" ] ; then
         debugData "truncating $file if exists"
         > "$file"
     fi
@@ -737,8 +738,9 @@ Options:
  -r length : (rnd) length of random bytes (default random <= 1024)
  -rb count : (rnd) generate file.count files
  -d : dump password and secret on stderr for debug
+ -t : (enc) truncate output file, applied only if not -o or -slot
  -o : (enc|dec) write/read to/from offset in bytes, default 0
-      if not set enc truncates output file, if set even if zero enc does not truncate and pads to 1024 length
+      if not set and -t enc truncates output file, if set even if zero enc does not truncate and pads to 1024 length
  -os|-es|-slot slot: (enc|dec) use slot, default 1 is same as -o 0 and -os 1 is same as -o 1024
 Examples:
 EOF
@@ -890,6 +892,9 @@ function main()
                 fi
                 shift
                 cskDecodeOffset=$((("$slot" - 1) * 1024))
+            ;;
+            -t)
+                cskTruncate="1"
             ;;
             *)
                 logError "! unknown option: $current"
