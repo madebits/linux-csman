@@ -172,7 +172,6 @@ function encryptedSecretLengthInner()
 function encryptAes()
 {
     local pass="$1"
-    local error="0"
     if [ "$useAes" = "1" ]; then
         "${toolsDir}/aes" -c 1000000 -r /dev/urandom -e -f <(echo -n "$pass")
     elif [ "$useAes" = "2" ]; then
@@ -187,7 +186,6 @@ function encryptAes()
 function decryptAes()
 {
     local pass="$1"
-    local error="0"
     if [ "$useAes" = "1" ]; then
         "${toolsDir}/aes" -c 1000000 -d -f <(echo -n "$pass")
     elif [ "$useAes" = "2" ]; then
@@ -197,6 +195,18 @@ function decryptAes()
     else
         ccrypt -d -k <(echo -n "$pass")
     fi
+}
+
+function encryptAesSession()
+{
+    local pass="$1"
+    "${toolsDir}/aes" -c 1000000 -r /dev/urandom -e -f <(echo -n "$pass")
+}
+
+function decryptAesSession()
+{
+    local pass="$1"
+    "${toolsDir}/aes" -c 1000000 -d -f <(echo -n "$pass")
 }
 
 ########################################################################
@@ -636,7 +646,7 @@ function readSessionPassFromFile()
         if [ -z "$p" ]; then
             onFailed "cannot read session password from: ${1}"
         fi
-        echo -n "$p" | base64 -d | decryptAes "$cskSessionKey"
+        echo -n "$p" | base64 -d | decryptAesSession "$cskSessionKey"
     else
         onFailed "cannot read from: ${1}"
     fi
@@ -676,7 +686,7 @@ function createSessionPass()
 
     # add a token to pass
     restrictFile "${file}"
-    echo -n "${pass}CSKEY" | encryptAes "$cskSessionKey" > "${file}"
+    echo -n "${pass}CSKEY" | encryptAesSession "$cskSessionKey" > "${file}"
     #ownFile "$file"
     logError
     logError "# session: stored password in: ${file}"
@@ -714,7 +724,7 @@ function loadSessionSecret()
     fi
     readSessionPass
     logError "# session: reading secret from: ${file}"
-    cskSecret="$(cat -- ${file} | decryptAes "$cskSessionKey" | base64 -w 0)"
+    cskSecret="$(cat -- ${file} | decryptAesSession "$cskSessionKey" | base64 -w 0)"
     if [ -z "$cskSecret" ]; then
         onFailed "cannot read session secret from: ${file}"
     fi
@@ -996,6 +1006,16 @@ function main()
             createSessionStore
             cskFile=$(fixSessionFilePath "${cskFile}")
             createSessionPass "$cskFile"
+        ;;
+        sesp)
+            cskFile=$(fixSessionFilePath "${cskFile}")
+            loadSessionPass "$cskFile"
+            echo "$cskSessionPassFile"
+        ;;
+        sess)
+            cskFile=$(fixSessionFilePath "${cskFile}")
+            loadSessionSecret "$cskFile"
+            echo "$cskSecret"
         ;;
         x)
             # file arg is ignored
