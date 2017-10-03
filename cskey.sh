@@ -356,6 +356,7 @@ function readKeyFiles()
             read -e -p "Key file $count (or Enter if none): " keyFile
             logError
         #fi
+        keyFile="${HOME}/${keyFile#"~/"}"
         if [ ! -f "$keyFile" ]; then
             break
         fi
