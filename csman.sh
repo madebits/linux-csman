@@ -445,6 +445,13 @@ function getMode()
     echo "$@"
 }
 
+function getOffset()
+{
+    set -- $(cryptsetup status "$1" | grep offset:)
+    shift
+    echo "$@"
+}
+
 #dev
 function getDmKey()
 {
@@ -473,27 +480,31 @@ function listContainer()
         time=$(stat -c %z "$dev")
         echo -e "Open:\t${time}"
         cipher="$(getChipher "$dev")"
+        offset="$(getOffset "$dev")"
         set +e
         local label="$(e2label "$dev" 2> /dev/null)"
         set -e
-        echo -e "Device:\t${dev}\t${cipher}\t${label}"
+        echo -e "Device (1):\t${dev}\t${cipher}\t${label}\t@ ${offset}"
         if [ "$csmListShowKey" = "1" ]; then
             local k=$(getDmKey "$dev")
             echo -e "RawKey:\t$k"
+            cryptsetup status "$dev"
         fi
     fi
     dev="$(getDevice "$name" "1")"
     if [ -e "$dev" ]; then
         lastDev="$dev"
         cipher="$(getChipher "$dev")"
+        offset="$(getOffset "$dev")"
         set +e
         local label="$(e2label "$dev" 2> /dev/null)"
         set -e
-        echo -e "Device:\t${dev}\t${cipher}\t${label:-<no label>}"
+        echo -e "Device (2):\t${dev}\t${cipher}\tLABEL: ${label:-<no label>}\t@ ${offset}"
         if [ "$csmListShowKey" = "1" ]; then
             local k=$(getDmKey "$dev")
             echo -e "RawKey:\t$k"
-        fi
+            cryptsetup status "$dev"
+         fi
     fi
     local mntDir1=$(mntDirRoot "$name")
     local mntDir2=$(mntDirUser "$name")
