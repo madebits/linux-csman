@@ -1298,7 +1298,7 @@ Usage:
  $bn list|l
  $bn mount|m name
  $bn umount|u name
- $bn create|n container size -s secret [ options ]
+ $bn create|new|n container size -s secret [ options ]
    size should end in M or G
  $bn resize|r name
  $bn increase|i name bySize
