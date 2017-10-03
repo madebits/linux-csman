@@ -99,9 +99,11 @@ function createDir()
     if [ -S "${file}" ]; then
         return
     fi
-    local dir=$(dirname -- "${file}")
-    if [ dir != "." ]; then
-        mkdir -p -- "${dir}"
+    if [ -f "$file" ]; then
+        local dir=$(dirname -- "${file}")
+        if [ dir != "." ]; then
+            mkdir -p -- "${dir}"
+        fi
     fi
 }
 
