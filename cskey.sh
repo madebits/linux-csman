@@ -152,8 +152,10 @@ function encryptAes()
 {
     local pass="$1"
     if [ "$useAes" = "1" ]; then
-        "${toolsDir}/aes" -c 5000000 -r /dev/urandom -e -f <(echo -n "$pass")
+        "${toolsDir}/aes" -m -c 5000000 -r /dev/urandom -e -f <(echo -n "$pass")
     elif [ "$useAes" = "2" ]; then
+        "${toolsDir}/aes" -a -c 1000000 -r /dev/urandom -e -f <(echo -n "$pass")
+    elif [ "$useAes" = "3" ]; then
         gpg -o - --batch --quiet --yes --passphrase-file <(echo -n "$pass") --s2k-mode 3 --s2k-count 65011712 --s2k-digest-algo SHA512 --s2k-cipher-algo AES256 --symmetric -
     else
         ccrypt -e -f -k <(echo -n "$pass")
@@ -164,7 +166,9 @@ function decryptAes()
 {
     local pass="$1"
     if [ "$useAes" = "1" ]; then
-        "${toolsDir}/aes" -c 5000000 -d -f <(echo -n "$pass")
+        "${toolsDir}/aes" -m -c 5000000 -d -f <(echo -n "$pass")
+    elif [ "$useAes" = "2" ]; then
+        "${toolsDir}/aes" -a -c 1000000 -d -f <(echo -n "$pass")
     elif [ "$useAes" = "2" ]; then
         gpg -o - --batch --quiet --yes --passphrase-file <(echo -n "$pass") -d -
     else
@@ -737,8 +741,9 @@ Options:
      0 read from console, no echo (default)
      1|echo|e read from console with echo
      2|copy|c read from 'xclip -o -selection clipboard'
- -c encryptMode : (enc|dec|ses) use 1 for aes tool, 2 for gpg, 0 or any other value uses ccrypt
-    By default, aes tool is used if found and only it ensures the encrypted secret data look random
+ -c encryptMode : (enc|dec|ses) tool used to encrypt secret
+    Use 1 aes tool, 2 aes tool authenticated, 3 gpg, 0 or any other value ccrypt
+    By default, aes tool (1) is used if found (ensures the encrypted secret data look random)
     Ecrypted data of both ccrypt and gpg have indentifying bytes
  -p passFile : (enc|dec|ses) read pass from first line in passFile
  -ap @file : (enc|dec) session: read pass from encrypted file (see -apo)
