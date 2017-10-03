@@ -141,6 +141,8 @@ function encryptedSecretLength()
 {
     if [ "$useAes" = "1" ]; then
         echo 560
+    elif [ "$useAes" = "2" ]; then
+        echo 587
     else
         echo 544
     fi
@@ -151,6 +153,8 @@ function encryptAes()
     local pass="$1"
     if [ "$useAes" = "1" ]; then
         "${toolsDir}/aes" -c 5000000 -r /dev/urandom -e -f <(echo -n "$pass")
+    elif [ "$useAes" = "2" ]; then
+        gpg -o - --batch --quiet --yes --passphrase-file <(echo -n "$pass") --s2k-mode 3 --s2k-count 65011712 --s2k-digest-algo SHA512 --s2k-cipher-algo AES256 --symmetric -
     else
         ccrypt -e -f -k <(echo -n "$pass")
     fi
@@ -161,6 +165,8 @@ function decryptAes()
     local pass="$1"
     if [ "$useAes" = "1" ]; then
         "${toolsDir}/aes" -c 5000000 -d -f <(echo -n "$pass")
+    elif [ "$useAes" = "2" ]; then
+        gpg -o - --batch --quiet --yes --passphrase-file <(echo -n "$pass") -d -
     else
         ccrypt -d -k <(echo -n "$pass")
     fi
@@ -252,6 +258,7 @@ function decodeSecret()
     local file="$1"
     local pass="$2"
     local secretLength=$(encryptedSecretLength)
+    local length=$(("$secretLength" + 32))
     
     # weak shortcut, ok to use for something quick, once a while
     if [ "$1" = "--" ]; then
@@ -264,7 +271,7 @@ function decodeSecret()
     if [ -e "$file" ] || [ "$file" = "-" ]; then
         debugData "Read at offset ${cskDecodeOffset:-0}"
         local offset=$((${cskDecodeOffset:-0} + 1))
-        local fileData=$(tail -c +${offset} -- "$file" | head -c 600 | base64 -w 0)
+        local fileData=$(tail -c +${offset} -- "$file" | head -c "$length" | base64 -w 0)
         if [ "$file" != "-" ]; then
             touchFile "$file"
         fi
@@ -273,6 +280,7 @@ function decodeSecret()
         fi
         local salt=$(echo -n "$fileData" | base64 -d | head -c 32 | base64 -w 0)
         local data=$(echo -n "$fileData" | base64 -d | tail -c +33 | head -c "${secretLength}" | base64 -w 0)
+        #debugData "data $data"
         local hash=$(pass2hash "$pass" "$salt")
         touchFile "$file"
         if [ -n "${cskSessionSecretFile}" ]; then
@@ -469,7 +477,7 @@ function encryptFile()
         file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
     fi
     
-    logError "# Encoding secret in: $file (at byte offset ${cskDecodeOffset:-0}, slot=$((${cskDecodeOffset:-0} / 1024 + 1)))"
+    logError "# Encoding secret in: $file (at byte offset ${cskDecodeOffset:-0}, slot=$((${cskDecodeOffset:-0} / 1024 + 1))) (-c $useAes)"
     readKeyFiles
     local pass=$(readNewPass)
     local secret=$(getSecret)
@@ -729,8 +737,9 @@ Options:
      0 read from console, no echo (default)
      1|echo|e read from console with echo
      2|copy|c read from 'xclip -o -selection clipboard'
- -c encryptMode : (enc|dec|ses) use 1 for aes tool, 0 or any other value uses ccrypt
-    By default, aes tool is used if found
+ -c encryptMode : (enc|dec|ses) use 1 for aes tool, 2 for gpg, 0 or any other value uses ccrypt
+    By default, aes tool is used if found and only it ensures the encrypted secret data look random
+    Ecrypted data of both ccrypt and gpg have indentifying bytes
  -p passFile : (enc|dec|ses) read pass from first line in passFile
  -ap @file : (enc|dec) session: read pass from encrypted file (see -apo)
     Any other password input options are ignored
