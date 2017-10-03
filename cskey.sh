@@ -329,7 +329,7 @@ function decodeSecret()
 function keyFileHash()
 {
     local keyFile="$1"
-    head -c 1024 -- "$keyFile" | sha256sum | cut -d ' ' -f 1
+    head -c 1024 -- "$keyFile" | sha512sum | cut -d ' ' -f 1
     if [ "$?" != "0" ]; then
         onFailed "cannot read keyFile: ${keyFile}"
     fi
@@ -368,7 +368,7 @@ function computeKeyFilesHash()
     local hash=""
     if (( ${#cskKeyFiles[@]} )); then
         # read order does not matter
-        hash=$(printf '%s\n' "${cskKeyFiles[@]}" | sort | sha256sum | cut -d ' ' -f 1)
+        hash=$(printf '%s\n' "${cskKeyFiles[@]}" | sort | sha512sum | cut -d ' ' -f 1)
     fi
     echo "$hash"
 }
