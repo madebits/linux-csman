@@ -341,7 +341,7 @@ function readKeyFiles()
     local count=0
     local keyFile=""
 
-    if [ "$cskNoKeyFiles" = "1" ] || [ -n "$cskSessionPassFile" ]; then
+    if [ "$cskNoKeyFiles" = "1" ]; then
         return
     fi
 
