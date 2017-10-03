@@ -29,6 +29,7 @@ if [ "$#" -gt "0" ]; then
 fi
 
 user="${SUDO_USER:-$(whoami)}"
+userHome="$(getent passwd ${SUDO_USER:-$USER} | cut -d: -f6)"
 toolsDir="$(dirname $0)"
 csmkeyTool="${toolsDir}/cskey.sh"
 lastName=""
@@ -158,7 +159,7 @@ function touchFile()
             if [ -d "/usr" ]; then
                 fileTime=$(stat -c %z "/usr")
             else
-                fileTime=$(stat -c %z -- "$HOME")
+                fileTime=$(stat -c %z -- "${userHome}")
             fi
         fi
         set +e
@@ -228,21 +229,21 @@ function getDevice()
 function cleanMntDir()
 {
     set +e
-    rmdir "$HOME/mnt/tmpcsm" 2> /dev/null
-    find "$HOME/mnt/" -maxdepth 1  -type d -name '?csm-*' -print0 | xargs -0 -r -n 1 -I {} rmdir {} 2> /dev/null
+    rmdir "${userHome}/mnt/tmpcsm" 2> /dev/null
+    find "${userHome}/mnt/" -maxdepth 1  -type d -name '?csm-*' -print0 | xargs -0 -r -n 1 -I {} rmdir {} 2> /dev/null
     set -e
 }
 
 # name
 function mntDirRoot()
 {
-    echo "$HOME/mnt/${1}"
+    echo "${userHome}/mnt/${1}"
 }
 
 # name
 function mntDirUser()
 {
-    echo "$HOME/mnt/u${1}"
+    echo "${userHome}/mnt/u${1}"
 }
 
 ########################################################################
@@ -741,7 +742,9 @@ function createDir()
     if [ -S "${file}" ]; then
         return
     fi
-    local dir=$(dirname -- "${file}")
+    local dir
+    dir="$(realpath -- "${file}")"
+    dir="$(dirname -- "$dir")"
     if [ dir != "." ]; then
         mkdir -p -- "${dir}"
     fi
@@ -786,7 +789,8 @@ function checkFreeSpace()
     local size="$1"
     local sizeNum="$2"
     local dir
-    dir="$(dirname -- "$(realpath -- "${container}")")"
+    dir="$(realpath -- "${container}")"
+    dir="$(dirname -- "$dir")"
     local availMb
     availMb=$(df --block-size=1 --output=avail "${dir}" | tail -n 1)
     availMb=$((availMb / 1024 / 1024))
