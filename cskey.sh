@@ -719,38 +719,42 @@ function showHelp()
     cat << EOF
 Usage: $(basename -- "$0") [enc | dec | ses | rnd | x] file [options]
 For dec|enc in place of file any of can be used:
-    --  file is a shortcut not to use a secret file (weak)
-    ? read file path from console
-    ! read file via zenity
+    -  stdout (dec) or stdin (enc)
+    -- file is a shortcut not to use a secret file (weak)
+    ?  read file path from console
+    !  read file via zenity (if present)
 Options:
  -i inputMode : (enc|dec|ses) used for password
     Password input modes:
      0 read from console, no echo (default)
-     1|e|echo read from console with echo
-     2|c|copy read from 'xclip -o -selection clipboard'
+     1|echo|e read from console with echo
+     2|copy|c read from 'xclip -o -selection clipboard'
  -c encryptMode : (enc|dec|ses) use 1 for aes tool, 0 or any other value uses ccrypt
+    By default, aes tool is used if found
  -p passFile : (enc|dec|ses) read pass from first line in passFile
- -ap file : (enc|dec) session: read pass from encrypted file (see -apo), other pass input options are ignored
+ -ap @file : (enc|dec) session: read pass from encrypted file (see -apo)
+    Any other password input options are ignored
  -k : (enc|dec) do not ask for keyfiles
  -kf keyFile : (enc|dec) use keyFile (combine with -k)
  -b count : (enc) generate file.count backup copies
  -bs : (enc) generate a new secret for each -b file
  -h hashToolOptions - : (enc|dec) default -h ${cskHashToolOptions[@]} -
- -s file : (enc) read secret data (512 binary bytes encoded as 'base64 -w 0') from file
  -su : (enc) use only /dev/urandom to generate secret
- -as file : (enc) session : read secret data from a session file (see -aso)
- -aso outFile : (dec) session: write secret data to a encrypted file
- -apo outFile : (dec) session: write password data to a encrypted file
- -ar file : (enc|dec|ses) session: use file data as part of session seed, created if not exists ($cskSessionLocation)
+ -s file : (enc) read secret data (512 binary bytes encoded as 'base64 -w 0') from file
+ -as @file : (enc) session: read secret data from a session file (see -aso)
+ -aso @outFile : (dec) session: write secret data to a encrypted file
+ -apo @outFile : (dec) session: write password data to a encrypted file
+ -ar file : (enc|dec|ses) session: use file data as part of session seed
+     Created if not exists in $cskSessionLocation
  -aa : (enc|dec|ses) session: do not ask for session key (use default)
  -ak file : (enc|dec|ses) session: read session key from file
  -r length : (rnd) length of random bytes (default random <= 1024)
  -rb count : (rnd) generate file.count files
  -d : dump password and secret on stderr for debug
  -t : (enc) truncate output file, applied only if not -o or -slot
- -o : (enc|dec) write/read to/from offset in bytes, default 0
+ -o offset : (enc|dec) write/read to/from offset in bytes, default 0
       if not set and -t enc truncates output file, if set even if zero enc does not truncate and pads to 1024 length
- -os|-es|-slot slot: (enc|dec) use slot, default 1 is same as -o 0 and -os 1 is same as -o 1024
+ -slot|-os|-es slot: (enc|dec) use slot, default 1 is same as -o 0 and -os 1 is same as -o 1024
 Examples:
 EOF
 echo ' sudo bash -c '"'"'secret=$(cskey.sh dec d.txt | base64 -w 0) && cskey.sh enc d.txt -s <(echo -n "$secret")'"'"''
