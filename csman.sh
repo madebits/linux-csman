@@ -13,7 +13,7 @@ set -eu -o pipefail
 
 if [ $(id -u) != "0" ]; then
     case "${1:-}" in
-        cp|rsync)
+        cp|rsync|dc|dcq)
         ;;
         *)
             (>&2 echo "! needs sudo")
@@ -997,6 +997,114 @@ function rsyncDir()
 
 ########################################################################
 
+dcDir=""
+dcStart=$(date +%s)
+dcShowInfo="1"
+
+function dcCleanUp()
+{
+    local location="$dcDir"
+    dcDir=""
+    if [ -z "$location" ]; then
+        return
+    fi
+
+    if [ -d "${location}" ]; then
+        log " Removing: ${location}"
+        rm -rf "${location}"
+    fi
+    end=$(date +%s)
+    runtime=$((end-dcStart))
+    log "Done: ${runtime} seconds"
+    exit
+}
+
+function dcPrintAvailable {
+    available=$(df -Ph "${dcDir}" | tail -1 | tr -s ' ' | cut -d ' ' -f 4)
+    echo -n "$available"
+}
+
+function dcInfo()
+{
+    if [ "${dcShowInfo}" != "1" ]; then
+        return
+    fi
+    cat <<EOF
+# info: before running dc tool, call once manually on your partition:
+
+  sudo tune2fs -m 0 $1
+  sudo tune2fs -l $1 | grep 'Reserved block count'
+
+# info: last command should return 0
+EOF
+    read -p "Press Enter to continue or Ctrl+C to exit: "
+    echo
+}
+
+function dcCleanFreeDiskSpace()
+{
+    local count=0
+    local location="${1:-}"
+    if [ -n "$location" ]; then
+        shift
+        processOptions "$@"
+    else
+        location=.
+    fi
+    
+    location="$(realpath -- "${location}")"
+    local tmp="${location}/csm-$RANDOM"
+    while [ -d "$tmp" ]; do
+        tmp="${location}/csm-$RANDOM"
+    done
+    
+    trap dcCleanUp 0 SIGHUP SIGINT SIGQUIT SIGTERM SIGABRT SIGQUIT 
+    dcDir="$tmp"
+    mkdir -p "${dcDir}"
+    local partition=$(df -P "${dcDir}" | tail -1 | tr -s ' ' | cut -d ' ' -f 1)
+    dcInfo "${partition}"
+    dcStart=$(date +%s)
+    echo -e "Using folder ${dcDir}\nOverwriting free partition space in ${partition}"
+    echo -e "May take some time. Press Ctrl+C to stop:\n\n"
+   
+    dcPrintAvailable
+    while : ; do
+        count=$((count+1))
+        echo -n +
+        set +e
+        dd if=/dev/zero iflag=fullblock count=1024 bs=1M conv=fdatasync >> "${dcDir}/zero.${count}" 2>/dev/null
+        res=$?
+        set -e
+        if [ $res -ne 0 ]; then
+            sync
+            dcPrintAvailable
+            break;
+        fi
+    done
+
+    while : ; do
+        count=$((count+1))
+        set +e
+        cat /dev/zero > "${dcDir}/zero.${count}" 2>/dev/null
+        res=$?
+        set -e
+        if [ $res -ne 0 ]; then
+            sync
+            available=$(df -P "${dcDir}" | tail -1 | tr -s ' ' | cut -d ' ' -f 4)
+            echo -n "$available"
+            echo -n .
+            if [[ $available -lt 5 ]] ; then
+                break;
+            fi
+        fi
+    done
+    sleep 1 ; sync
+    echo -e "\n"
+    dcCleanUp
+}
+
+########################################################################
+
 function cleanUp()
 {
     local name="$lastName"
@@ -1052,6 +1160,9 @@ Usage:
     can be used without sudo, needs pv
  $bn rsync src dst
     can be used without sudo, needs rsync
+ $bn dc dir
+    can be used without sudo, default dir is .
+    clean free disk space in partition having dir
 Where [ openCreateOptions ]:
  -co cryptsetup options --- : outer encryption layer
  -ci cryptsetup options --- : inner encryption layer
@@ -1176,6 +1287,9 @@ function processOptions()
             -oo)
                 csmCreateOverwriteOnly="1"
             ;;
+            -q)
+                dcShowInfo="0"
+            ;;
             *)
                 onFailed "unknown option: $current"
             ;;
@@ -1268,6 +1382,12 @@ function main()
         ;;
         rsync)
             rsyncDir "$@"
+        ;;
+        dcq)
+            dcShowInfo="0"
+        ;&
+        dc)
+            dcCleanFreeDiskSpace "$@"
         ;;
         *)
             showHelp
