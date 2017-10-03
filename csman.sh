@@ -1332,7 +1332,7 @@ Where [ options ]:
  -out: (chp) output file
  -sc|-slots slots : overwrites -co -o parameter (default 4, use 0 for no slots)
 Example:
- sudo csmap.sh open container.bin secret.bin -l -ck -k -h -p 8 -m 14 -t 1000 -- ---
+ sudo csmap.sh open container.bin -s secret.bin -l -ck -k -h -p 8 -m 14 -t 1000 -- ---
 
 EOF
 } >&2
