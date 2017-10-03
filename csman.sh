@@ -897,7 +897,7 @@ function createContainer()
     
     clearScreen
     
-    echo "(Re-)enter password to open the container for formating (existing data, if any, will be lost) ..."
+    echo "(Re-)enter password to open the container ${container} for formating (existing data, if any, will be lost) ..."
     local key=$("${csmkeyTool}" dec "$secret" "${ckOptions[@]}" | base64 -w 0)
     if [ -z "$key" ]; then
         onFailed "cannot get secret"
@@ -930,7 +930,11 @@ function createContainer()
     fi
     
     echo "Done! To open container use:"
-    echo "$(basename -- "$0") open ${container} -s ${secret} (options)"
+    if [ -n "$slotCount" ] && [ "$slotCount" -gt "0" ] ; then
+        echo "$(basename -- "$0") open ${container} (options)"
+    else
+        echo "$(basename -- "$0") open ${container} -s ${secret} (options)"
+    fi
 }
 
 function embedSecretOnCreate()
