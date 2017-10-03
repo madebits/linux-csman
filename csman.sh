@@ -1323,7 +1323,7 @@ Where [ options ]:
  -one : (open|create) use only one (outer) encryption layer
  -u : (open) do not mount on open
  -r|-ro : (open) mount user read-only
- -e : (open) mount with exec option (default no exec)
+ -e|-exec : (open) mount with exec option (default no exec)
  -sfc : (create) skip free disk space check for files
  -oo : (create) dd only
  -lk : (list) list raw keys
@@ -1446,7 +1446,7 @@ function processOptions()
             -r|-ro)
                 cmsMountReadOnly="1"
             ;;
-            -e)
+            -e|-exe|-exec)
                 cmsMountExec="1"
             ;;  
             -lk)
