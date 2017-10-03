@@ -351,14 +351,15 @@ function readKeyFiles()
         return
     fi
 
+    local lastDir=""
     while :
     do
         count=$((count+1))
 
-        read -e -p "Key file $count (or Enter if none) [@ $(dirs +0) ]: " keyFile
+        read -i "$lastDir" -e -p "Key file $count (Ctrl+U clean, Enter if none) [@ $(dirs +0) ]: " keyFile
         #logError
 
-        if [ -z "$keyFile" ]; then
+        if [ -z "$keyFile" ] || [ -d "$keyFile" ]; then
             break
         fi
 
@@ -370,6 +371,7 @@ function readKeyFiles()
         else
             cskKeyFiles+=( "$(keyFileHash "$keyFile")" )
         fi
+        lastDir="$(dirname -- "$keyFile")/"
     done
     logError
 }
