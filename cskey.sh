@@ -359,10 +359,10 @@ function readPassword()
 {
     if [ -n "$cskPassFile" ]; then
         pass="$cskPassFile"
-    elif [ "$cskInputMode" = "1" ] || [ "$cskInputMode" = "e" ]; then
+    elif [ "$cskInputMode" = "1" ] || [ "$cskInputMode" = "e" ] || [ "$cskInputMode" = "echo" ]; then
         read -p "Password: " pass
         logError
-    elif [ "$cskInputMode" = "2" ] || [ "$cskInputMode" = "c" ]; then
+    elif [ "$cskInputMode" = "2" ] || [ "$cskInputMode" = "c" ] || [ "$cskInputMode" = "copy" ]; then
         pass=$(xclip -o -selection clipboard)
     else
         read -p "Password: " -s pass
@@ -557,7 +557,7 @@ function readSessionPass()
         local rsp="${cskSessionAutoKeyFile}"
         if [ -z "${rsp}" ] && [ "${cskSessionAutoKey}" = "0" ]; then
             logError
-            if [ "$cskInputMode" = "1" ] || [ "$cskInputMode" = "e" ]; then
+            if [ "$cskInputMode" = "1" ] || [ "$cskInputMode" = "e" ] || [ "$cskInputMode" = "echo" ]; then
                 read -p "Session key (or Enter for default): " rsp
             else
                 read -p "Session key (or Enter for default): " -s rsp
@@ -726,8 +726,8 @@ Options:
  -i inputMode : (enc|dec|ses) used for password
     Password input modes:
      0 read from console, no echo (default)
-     1|e read from console with echo
-     2|c read from 'xclip -o -selection clipboard'
+     1|e|echo read from console with echo
+     2|c|copy read from 'xclip -o -selection clipboard'
  -c encryptMode : (enc|dec|ses) use 1 for aes tool, 0 or any other value uses ccrypt
  -p passFile : (enc|dec|ses) read pass from first line in passFile
  -ap file : (enc|dec) session: read pass from encrypted file (see -apo), other pass input options are ignored
