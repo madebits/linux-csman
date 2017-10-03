@@ -605,7 +605,7 @@ function openContainerByName()
         local dev1="$(getDevice "$name" "1")"
         echo "Opening ${dev1} ..."
         set +e
-        echo -n "${key}" | base64 -d | cat - <(echo -n "different key") | cryptsetup --type plain -c twofish-cbc-essiv:sha256 -s 256 -h sha512 $cro "${csiOptions[@]}" open "${dev}" "${name1}" -
+        echo -n "${key}" | base64 -d | cryptsetup --type plain -c twofish-cbc-essiv:sha256 -s 256 -h sha512 $cro "${csiOptions[@]}" open "${dev}" "${name1}" -
         if [ "$?" != "0" ]; then
             closeContainerByName "$name"
             failed
