@@ -348,20 +348,24 @@ function readKeyFiles()
     while :
     do
         count=$((count+1))
-        #if [ "$cskInputMode" = "!" ] || [ "$cskInputMode" = "4" ]; then
-        #    set +e
-        #    keyFile="$(zenity --file-selection --title='Key File (press Cancel when done)' 2> /dev/null)"
-        #    set -e
-        #else
-            read -e -p "Key file $count (or Enter if none): " keyFile
-            logError
-        #fi
-        keyFile="${HOME}/${keyFile#"~/"}"
-        if [ ! -f "$keyFile" ]; then
+
+        read -e -p "Key file $count (or Enter if none) [@ $(dirs +0) ]: " keyFile
+        #logError
+
+        if [ -z "$keyFile" ]; then
             break
         fi
-        cskKeyFiles+=( "$(keyFileHash "$keyFile")" )
+
+        keyFile="${keyFile/#\~/$HOME}"
+        keyFile="$(realpath -- "$keyFile")"
+        if [ ! -f "$keyFile" ]; then
+            logError "# no such file: ${keyFile}"
+            count=$((count-1))
+        else
+            cskKeyFiles+=( "$(keyFileHash "$keyFile")" )
+        fi
     done
+    logError
 }
 
 function computeKeyFilesHash()
