@@ -58,6 +58,8 @@ toolsDir="$(dirname $0)"
 useAes="1"
 cskSessionLocation="${userHome}/mnt/tmpcsm"
 
+export HOME="${userHome}"
+
 #if [ -f "${toolsDir}/aes" ]; then
 #    useAes="1"
 #fi

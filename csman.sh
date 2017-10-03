@@ -62,6 +62,8 @@ slotOffsetFactor="2"
 csmContainerSize=""
 csmUseSameKey="0"
 
+export HOME="${userHome}"
+
 ########################################################################
 
 currentScriptPid=$$
