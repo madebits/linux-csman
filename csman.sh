@@ -232,7 +232,7 @@ function cleanMntDir()
 {
     set +e
     rmdir "${userHome}/mnt/tmpcsm" 2> /dev/null
-    find "${userHome}/mnt/" -maxdepth 1  -type d -name '?csm-*' -print0 | xargs -0 -r -n 1 -I {} rmdir {} 2> /dev/null
+    find "${userHome}/mnt/" -maxdepth 1  -type d -name '?csm-*' -print0 | xargs -0 -r -I {} rmdir {} 2> /dev/null
     set -e
 }
 
@@ -553,7 +553,7 @@ function umountDevice()
     local device="$1"
     if [ -b "${device}" ]; then
         set +e
-        ls ${device}?* 2>/dev/null | xargs -r -n 1 -I {} fuser -km {}
+        ls ${device}?* 2>/dev/null | xargs -r -I {} fuser -km {}
         ls ${device}?* 2>/dev/null | xargs -r -n 1 umount
         set -e
     fi
