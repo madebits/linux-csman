@@ -671,8 +671,12 @@ function openContainer()
     
     echo "Reading ${device} secret from (${secret}) using ($name)"
     local key
+    local res
+    set +e
     key=$("${csmkeyTool}" dec "$secret" "${ckOptions[@]}" | base64 -w 0)
-    if [ -z "$key" ]; then
+    res=$?
+    set -e
+    if [ $res -ne 0 ] || [ -z "$key" ]; then
         resetTime
         onFailed "cannot get secret"
     fi
@@ -900,8 +904,13 @@ function createContainer()
     
     echo "(Re-)enter password to open the container ${container} for formating (existing data, if any, will be lost) ..."
     local key
+    local res
+    set +e
     key=$("${csmkeyTool}" dec "$secret" "${ckOptions[@]}" | base64 -w 0)
-    if [ -z "$key" ]; then
+    res=$?
+    set -e
+    if [ $res -ne 0 ] || [ -z "$key" ]; then
+        resetTime
         onFailed "cannot get secret"
     fi
 
@@ -1030,16 +1039,22 @@ function changePassword()
         ofile="$ifile"
     fi
     echo "# Decoding ${ifile} ..."
-    local secret
-    secret=$("${csmkeyTool}" dec "${ifile}" "${ckOptions[@]}" | base64 -w 0)
-    if [ -z "${secret}" ]; then
-        onFailed "cannot decode secret from ${ifile}"
+    local key
+    local res
+    set +e
+    key=$("${csmkeyTool}" dec "${ifile}" "${ckOptions[@]}" | base64 -w 0)
+    res=$?
+    set -e
+    if [ $res -ne 0 ] || [ -z "$key" ]; then
+        resetTime
+        onFailed "cannot get secret from ${ifile}"
     fi
+    
     if (( ! ${#ckOptions2[@]} )); then
         echo "# using same options for encode"
         ckOptions2=( "${ckOptions[@]}" )
     fi
-    "${csmkeyTool}" enc "${ofile}" -s <(echo -n "${secret}") "${ckOptions2[@]}"
+    "${csmkeyTool}" enc "${ofile}" -s <(echo -n "${key}") "${ckOptions2[@]}"
 }
 
 ########################################################################
