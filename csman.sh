@@ -964,6 +964,9 @@ function changePassword()
     processOptions "$@"
     echo "# Decoding ${ifile} ..."
     local secret=$("${csmkeyTool}" dec "${ifile}" "${ckOptions[@]}" | base64 -w 0)
+    if [ -z "${secret}" ]; then
+        onFailed "cannot decode secret from ${ifile}"
+    fi
     if (( ! ${#ckOptions2[@]} )); then
         echo "# using same options for encode"
         ckOptions2=( "${ckOptions[@]}" )
