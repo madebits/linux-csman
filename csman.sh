@@ -1596,6 +1596,10 @@ function processOptions()
         if [ -z "$found" ]; then
             csOptions+=( "-o" "$offset" )
         fi
+    else
+        if [ -z "$csmSecretFile" ]; then
+            csmSecretFile="?"
+        fi
     fi
 }
 
