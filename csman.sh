@@ -1383,7 +1383,7 @@ Usage:
    extract secret from device, if secret is - write to stdout
 Where [ options ]:
  -secret|-s : (create|open|embed|extract) secret file
-     for open if not set container file is used (use ? to be prompted)
+     for open if not set container file is used (use -s ? to be asked)
      for embed can be repeated
  -size|-S : (create) size of container in M or G
  -co cryptsetup options -- : outer encryption layer
