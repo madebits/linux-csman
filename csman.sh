@@ -1430,7 +1430,7 @@ function main()
             echo -e "# Disks:\n"
             df -h -T -x tmpfs -x devtmpfs -x squashfs
             echo -e "\n# Devices:\n"
-            lsblk -e 7,252
+            lsblk | grep -vE 'loop|ram'
         ;;
         *)
             showHelp
