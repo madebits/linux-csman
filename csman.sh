@@ -1211,6 +1211,12 @@ function embedSecretInSlot()
         return
     fi
     
+    if [ "$secretFile" = "*RANDOM*" ]; then
+        log "Removing any secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * "$slotOffsetFactor"))) of container ${containerFile}"
+        dd status=none conv=notrunc bs=1024 count=1 seek="$seek" if="/dev/urandom" of="$containerFile" > /dev/null
+        return
+    fi
+    
     if [ ! -f "$secretFile" ]; then
         onFailed "-s secret file required"
     fi
@@ -1318,6 +1324,7 @@ Usage:
 Where [ options ]:
  -s|-secret : (create|open|embed|extract) secret file
      for open if not set container file is used
+     for embed can be repeated
  -co cryptsetup options --- : outer encryption layer
  -ci cryptsetup options --- : inner encryption layer
  -ck $kn options ---"
@@ -1337,6 +1344,7 @@ Where [ options ]:
  -sc|-slots slots : overwrites -co -o parameter (default 4, use 0 for no slots)
  -s0 : same as -slots 0
  -es|-slot slot : (embed|extract) slot to use (default 1)
+ -d : (embed) delete slot, if used with -s deletes next slot
  -q : (dc) no startup information
  -out: (chp) output file
 Example:
@@ -1445,6 +1453,9 @@ function processOptions()
                 csmSecretFile="${2:?"! -s secretFile"}"
                 csmSecretFiles+=( "$csmSecretFile" )
                 shift
+            ;;
+            -d)
+                csmSecretFiles+=( "*RANDOM*" )
             ;;
             -l|-live)
                 csmLive="1"
