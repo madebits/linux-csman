@@ -619,7 +619,7 @@ function openContainerByName()
     #echo "Key2: $key2"
 
     local dev="$(getDevice "$name" "0")"
-    echo "Opening ${dev} ..."
+    echo "Opening ${dev} (${device}) ..."
     echo -n "${key1}" | base64 -d | cryptsetup --type plain -c aes-xts-plain64 -s 512 -h sha512 --shared $cro "${csOptions[@]}" open "${device}" "${name}" -
     cryptsetup status "${dev}"
     local lastDev="${dev}"
