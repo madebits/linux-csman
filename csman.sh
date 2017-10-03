@@ -58,6 +58,7 @@ slotCount=""
 csmSecretFile=""
 csmSecretFiles=()
 slotOffsetFactor="2"
+csmContainerSize=""
 
 ########################################################################
 
@@ -99,7 +100,7 @@ function checkNumber()
 {
     local re='^[0-9]+$'
     if ! [[ "$1" =~ $re ]] ; then
-        onFailed "$1 not a number"
+        onFailed "$1 not a number ${2:-}"
     fi
 }
 
@@ -781,21 +782,10 @@ function getDeviceSize()
 function createContainer()
 {
     local name=$(validName "-")
-        
+    
     local container="${1:-}"
     checkArg "$container" "container"
-    shift
-    
-    #local secret="${1:-}"
-    #checkArg "$secret" "secret"
-    #shift
-
-    local size="${1:-}"
-    checkArg "$size" "size"
-    shift
-
-    local sizeNum="${size: : -1}"
-    checkNumber "$sizeNum"
+    shift  
     
     local blockDevice="0"
     local writeContainer="1"
@@ -812,9 +802,6 @@ function createContainer()
         fi
     fi
     if [ -b "$container" ]; then
-        if [ "$sizeNum" -gt 0 ]; then
-            onFailed "Invalid size: ${size} (use 0G)"
-        fi
         blockDevice="1"
         local bSize=$(getDeviceSize "${container}")
         echo "Are you sure to encrypt block device: ${bSize} ${container}"
@@ -831,6 +818,11 @@ function createContainer()
     
     processOptions "$@"
     
+    local size="${csmContainerSize:-0}"
+    checkArg "$size" "size"
+    local sizeNum="${size: : -1}"
+    checkNumber "$sizeNum" " : container size in M or G"
+    
     local secret="$csmSecretFile"
     if [ -z "$secret" ] && [ -n "$slotCount" ] && [ "$slotCount" -gt "0" ] ; then
         echo "# no separate secret file"
@@ -844,6 +836,9 @@ function createContainer()
     
     if [ "$writeContainer" = "1" ]; then
         if [ "$blockDevice" = "1" ]; then
+            if [ "$sizeNum" -gt 0 ]; then
+                onFailed "Invalid size: ${size} (use 0G)"
+            fi
             umountDevice "${container}"
             testRndDataSource
             echo "Overwriting block device: ${container} ..."
@@ -931,9 +926,9 @@ function createContainer()
     
     echo "Done! To open container use:"
     if [ -n "$slotCount" ] && [ "$slotCount" -gt "0" ] ; then
-        echo "$(basename -- "$0") open ${container} (options)"
+        echo "$(basename -- "$0") open ${container} [options]"
     else
-        echo "$(basename -- "$0") open ${container} -s ${secret} (options)"
+        echo "$(basename -- "$0") open ${container} -s ${secret} [options]"
     fi
 }
 
@@ -1300,13 +1295,13 @@ Usage:
  $bn open|o device -s secret [ openCreateOptions ]
    if device and / or secret are: ? read from command line, or ! zenity
    ol  is same as open ... -l
-   olr is same as open -l -r
+   olr is same as open ... -l -r
  $bn close|c name
  $bn closeAll|ca
  $bn list|l
  $bn mount|m name
  $bn umount|u name
- $bn create|new|n container size -s secret [ options ]
+ $bn create|new|n container -size size -s secret [ options ]
    size should end in M or G
  $bn resize|r name
  $bn increase|i name bySize
@@ -1323,35 +1318,36 @@ Usage:
  $bn dc dir
    can be used without sudo, default dir is .
    clean free disk space in partition having dir
- $bn d|disk|disks
+ $bn disks|disk|d
    can be used without sudo, runs df and lsblk
- $bn e|embed device -s secret
+ $bn embed|e device -s secret
    embed secret to device, if secret is - read from stdin
- $bn ex|extract device -s secret
+ $bn extract|ex device -s secret
    extract secret from device, if secret is - write to stdout
 Where [ options ]:
- -s|-secret : (create|open|embed|extract) secret file
+ -secret|-s : (create|open|embed|extract) secret file
      for open if not set container file is used
      for embed can be repeated
- -co cryptsetup options --- : outer encryption layer
- -ci cryptsetup options --- : inner encryption layer
- -ck $kn options ---"
- -cko $kn options --- : only for use with chp output
- -cf mkfs ext4 options --- : (create)
- -l|-live : (open) live
- -n|-name name : (open) use csm-name
+ -size|-S : (create) size of container in M or G
+ -co cryptsetup options -- : outer encryption layer
+ -ci cryptsetup options -- : inner encryption layer
+ -ck $kn options --"
+ -cko $kn options -- : only for use with chp output
+ -cf mkfs ext4 options -- : (create)
+ -live|-l : (open) live
+ -name|-n name : (open) use csm-name
  -sl label : (open) set ext4 label
  -nocls : (open|create) do not clean screen after password entry
  -one : (open|create) use only one (outer) encryption layer
  -u : (open) do not mount on open
- -r|-ro : (open) mount user read-only
- -e|-exec : (open) mount with exec option (default no exec)
+ -ro|-r : (open) mount user read-only
+ -exec|-e : (open) mount with exec option (default no exec)
  -sfc : (create) skip free disk space check for files
  -oo : (create) dd only
  -lk : (list) list raw keys
- -sc|-slots slots : overwrites -co -o parameter (default 4, use 0 for no slots)
+ -slots|sc count : overwrites -co -o parameter (default 4, use 0 for no slots)
  -s0 : same as -slots 0
- -es|-slot slot : (embed|extract) slot to use (default 1)
+ -slot|-es slot : (embed|extract) slot to use (default 1)
  -d : (embed) delete slot, if used with -s deletes next slot
  -q : (dc) no startup information
  -out: (chp) output file
@@ -1369,12 +1365,12 @@ function processOptions()
             -co)
                 shift
                 csOptions=()
-                while [ "${1:-}" != "---" ]; do
+                while [ "${1:-}" != "--" ]; do
                     csOptions+=( "${1:-}" )
                     set +e
                     shift
                     if [ $? != 0 ]; then
-                        onFailed "-co no ---"
+                        onFailed "-co no --"
                     fi
                     set -e
                 done
@@ -1382,12 +1378,12 @@ function processOptions()
             -ci)
                 shift
                 csiOptions=()
-                while [ "${1:-}" != "---" ]; do
+                while [ "${1:-}" != "--" ]; do
                     csiOptions+=( "${1:-}" )
                     set +e
                     shift
                     if [ $? != 0 ]; then
-                        onFailed "-ci no ---"
+                        onFailed "-ci no --"
                     fi
                     set -e
                 done
@@ -1395,12 +1391,12 @@ function processOptions()
             -ck)
                 shift
                 ckOptions=()
-                while [ "${1:-}" != "---" ]; do
+                while [ "${1:-}" != "--" ]; do
                     ckOptions+=( "${1:-}" )
                     set +e
                     shift
                     if [ $? != 0 ]; then
-                        onFailed "-ck no ---"
+                        onFailed "-ck no --"
                     fi
                     set -e
                 done
@@ -1408,12 +1404,12 @@ function processOptions()
             -cko)
                 shift
                 ckOptions2=()
-                while [ "${1:-}" != "---" ]; do
+                while [ "${1:-}" != "--" ]; do
                     ckOptions2+=( "${1:-}" )
                     set +e
                     shift
                     if [ $? != 0 ]; then
-                        onFailed "-cko no ---"
+                        onFailed "-cko no --"
                     fi
                     set -e
                 done
@@ -1421,12 +1417,12 @@ function processOptions()
             -cf)
                 shift
                 mkfsOptions=()
-                while [ "${1:-}" != "---" ]; do
+                while [ "${1:-}" != "--" ]; do
                     mkfsOptions+=( "${1:-}" )
                     set +e
                     shift
                     if [ $? != 0 ]; then
-                        onFailed "-cf no ---"
+                        onFailed "-cf no --"
                     fi
                     set -e
                 done
@@ -1458,6 +1454,10 @@ function processOptions()
             ;;
             -s0)
                 slotCount="0"
+            ;;
+            -size|-S)
+                csmContainerSize="${2:?"! -size containerFileSize in M or G"}"
+                shift
             ;;
             -out)
                 csmOutFile="${2:?"! -out outFile"}"

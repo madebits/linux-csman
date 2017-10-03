@@ -735,7 +735,7 @@ Options:
  -kf keyFile : (enc|dec) use keyFile (combine with -k)
  -b count : (enc) generate file.count backup copies
  -bs : (enc) generate a new secret for each -b file
- -h hashToolOptions -- : (enc|dec) default -h ${cskHashToolOptions[@]} --
+ -h hashToolOptions - : (enc|dec) default -h ${cskHashToolOptions[@]} -
  -s file : (enc) read secret data (512 binary bytes encoded as 'base64 -w 0') from file
  -su : (enc) use only /dev/urandom to generate secret
  -as file : (enc) session : read secret data from a session file (see -aso)
@@ -796,12 +796,12 @@ function main()
             -h)
                 shift
                 cskHashToolOptions=()
-                while [ "${1:-}" != "--" ]; do
+                while [ "${1:-}" != "-" ]; do
                     cskHashToolOptions+=( "${1:-}" )
                     set +e
                     shift
                     if [ $? != 0 ]; then
-                        onFailed "-h no --"
+                        onFailed "-h no -"
                     fi
                     set -e
                 done
