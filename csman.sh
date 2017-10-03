@@ -40,7 +40,7 @@ csOptions=()
 csiOptions=()
 ckOptions=()
 ckOptions2=()
-csmCleanScreen="0"
+csmCleanScreen="1"
 csmName=""
 csmLive="0"
 mkfsOptions=()
@@ -1285,7 +1285,7 @@ Usage:
  $bn list|l
  $bn mount|m name
  $bn umount|u name
- $bn create|n container size -s secret [ openCreateOptions ]
+ $bn create|n container size -s secret [ options ]
    size should end in M or G
  $bn resize|r name
  $bn increase|i name bySize
@@ -1308,7 +1308,7 @@ Usage:
    embed secret to device, if secret is - read from stdin
  $bn ex|extract device -s secret
    extract secret from device, if secret is - write to stdout
-Where [ openCreateOptions ]:
+Where [ options ]:
  -s|-secret : (create|open|embed|extract) secret file
      for open if not set container file is used
  -co cryptsetup options --- : outer encryption layer
@@ -1316,13 +1316,13 @@ Where [ openCreateOptions ]:
  -ck $kn options ---"
  -cko $kn options --- : only for use with chp output
  -cf mkfs ext4 options --- : (create)
- -l : (open) live
- -n name : (open) use csm-name
+ -l|-live : (open) live
+ -n|-name name : (open) use csm-name
  -sl label : (open) set ext4 label
- -c : (open|create) clean screen after password entry
+ -nocls : (open|create) do not clean screen after password entry
  -one : (open|create) use only one (outer) encryption layer
  -u : (open) do not mount on open
- -r : (open) mount user read-only
+ -r|-ro : (open) mount user read-only
  -e : (open) mount with exec option (default no exec)
  -sfc : (create) skip free disk space check for files
  -oo : (create) dd only
@@ -1407,8 +1407,8 @@ function processOptions()
                     set -e
                 done
             ;;
-            -c|-cls)
-                csmCleanScreen="1"
+            -nocls)
+                csmCleanScreen="0"
             ;;
             -n|-name)
                 csmName="${2:-}"
@@ -1434,7 +1434,7 @@ function processOptions()
                 csmSecretFile="${2:?"! -s secretFile"}"
                 shift
             ;;
-            -l)
+            -l|-live)
                 csmLive="1"
             ;;
             -one)
@@ -1443,7 +1443,7 @@ function processOptions()
             -u)
                 csmMount="0"
             ;;
-            -r)
+            -r|-ro)
                 cmsMountReadOnly="1"
             ;;
             -e)
@@ -1457,6 +1457,7 @@ function processOptions()
             ;;
             -oo)
                 csmCreateOverwriteOnly="1"
+                csmSecretFile="!!any!!"
             ;;
             -q)
                 dcShowInfo="0"
@@ -1532,7 +1533,7 @@ function main()
         umount|u)
             umountContainer "$1"
         ;;
-        create|n)
+        create|n|new)
             createContainer "$@"            
         ;;
         x)
