@@ -43,6 +43,7 @@ mkfsOptions=()
 csmChain="1"
 csmMount="1"
 cmsMountReadOnly="0"
+cmsMountExec="0"
 csmListShowKey="0"
 csmCreateOverwriteOnly="0"
 csmOpenDiskLabel=""
@@ -240,32 +241,39 @@ function umountContainer()
     local name=$(validName "${1:-}")
     local mntDir1=$(mntDirRoot "$name")
     local mntDir2=$(mntDirUser "$name")
+    local lastError=""
     
     if [ -d "$mntDir2" ]; then
+        set +e
         mountpoint "${mntDir2}" &>/dev/null
-        if [ "$?" = "0" ]; then
+        lastError="$?"
+        set +e
+        if [ "${lastError}" = "0" ]; then
             set +e
-            fuser -km "$mntDir2"
+            fuser -km "${mntDir2}"
             set -e
             sleep 1
-            umount "$mntDir2" && rmdir "$mntDir2"
+            umount "${mntDir2}" && rmdir "${mntDir2}"
         else
-            rmdir "$mntDir2"
+            rmdir "${mntDir2}"
         fi
     fi
     if [ -d "$mntDir1" ]; then
+        set +e
         mountpoint "${mntDir1}" &>/dev/null
-        if [ "$?" = "0" ]; then
+        lastError="$?"
+        set +e
+        if [ "${lastError}" = "0" ]; then
             set +e
-            fuser -km "$mntDir1"
+            fuser -km "${mntDir1}"
             set -e
             sleep 1
             set +e
-            umount "$mntDir1" && rmdir "$mntDir1"
+            umount "${mntDir1}" && rmdir "${mntDir1}"
             set -e
         else
             set +e
-            rmdir "$mntDir1"
+            rmdir "${mntDir1}"
             set -e
         fi
     fi
@@ -294,10 +302,15 @@ function mountContainer()
         echo "# mounting read-only"
         ro="-o ro"
     fi
+    local ex=""
+    if [ "$cmsMountExec" = "1" ]; then
+        echo "# mounting with exec option"
+        ex="-o exec"
+    fi
     
     mkdir -p "$mntDir1"
     set +e
-    mount ${ro} -o users "$dev" "$mntDir1"
+    mount ${ro} -o users ${ex} "$dev" "$mntDir1"
     if [ "$?" != "0" ]; then
         closeContainerByName "$name"
         rmdir "$mntDir1"
@@ -1177,6 +1190,7 @@ Where [ openCreateOptions ]:
  -s : (open|create) use only one (outer) encryption layer
  -u : (open) do not mount on open
  -r : (open) mount user read-only
+ -e : (open) mount with exec option (default no exec)
  -lk : (list) list raw keys
  -sfc : (create) skip free disk space check for files
  -oo : (create) dd only
@@ -1279,6 +1293,9 @@ function processOptions()
             -r)
                 cmsMountReadOnly="1"
             ;;
+            -e)
+                cmsMountExec="1"
+            ;;  
             -lk)
                 csmListShowKey="1"
             ;;

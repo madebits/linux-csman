@@ -435,6 +435,11 @@ function decryptFile()
     elif [ "$file" = "!" ]; then
         file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
     fi
+    if [ -e "$file" ] || [ "$file" = "-" ]; then
+        :
+    else
+        onFailed "no such file: $file"
+    fi
 
     readKeyFiles
     local pass=$(readPass)
