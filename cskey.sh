@@ -50,7 +50,6 @@ cskRndBatch="0"
 cskUseURandom="0"
 cskDecodeOffset=""
 cskTruncate="0"
-cskLongPass="1"
 
 user="${SUDO_USER:-$(whoami)}"
 currentScriptPid=$$
@@ -141,22 +140,6 @@ function restrictFile()
 ########################################################################
 
 function encryptedSecretLength()
-{
-    local ls=$(encryptedSecretLengthInner)
-    echo $(( $ls + 256 ))
-}
-
-function encryptedSecretLength2()
-{
-    local ls=$(encryptedSecretLengthInner)
-    if [ "$cskLongPass" = "1" ]; then
-        echo $(( $ls + 256 ))
-    else
-        echo $ls
-    fi
-}
-
-function encryptedSecretLengthInner()
 {
     if [ "$useAes" = "1" ]; then
         echo 624
@@ -295,7 +278,7 @@ function decodeSecret()
 {
     local file="$1"
     local pass="$2"
-    local secretLength=$(encryptedSecretLength2)
+    local secretLength=$(encryptedSecretLength)
     local length=$(("$secretLength" + 32))
 
     # weak shortcut, ok to use for something quick, once a while
@@ -460,8 +443,8 @@ function getSecret()
         logError "# secret: user specified (-s or -as)"
         secret="${cskSecret}"
         local secretLength=$(echo -n $secret | base64 -d | wc -c)
-        if [ $secretLength -lt 768 ]; then
-            local pad=$((768 - $secretLength))
+        if [ $secretLength -lt 512 ]; then
+            local pad=$((512 - $secretLength))
             secret=$(cat <(echo -n $secret | base64 -d) <(head -c $pad /dev/urandom) | base64 -w 0 )
         fi
     else
@@ -472,12 +455,12 @@ function getSecret()
             # https://security.stackexchange.com/questions/3936/is-a-rand-from-dev-urandom-secure-for-a-login-key
             # https://www.2uo.de/myths-about-urandom/
             # dmesg | grep random:
-            secret=$(head -c 768 /dev/urandom | base64 -w 0)
+            secret=$(head -c 512 /dev/urandom | base64 -w 0)
         else
-            logError "# secret: generating new, move mouse around if stuck"
+            logError "# secret: generating new, move mouse around if stuck (or use -su)"
             # 32 bytes from /dev/random are enough
             # but length matters anyway, so we use 512 + 256 byte keys
-            secret=$(cat <(head -c 480 /dev/urandom) <(head -c 32 /dev/random) <(head -c 256 /dev/urandom) | base64 -w 0)
+            secret=$(cat <(head -c 480 /dev/urandom) <(head -c 32 /dev/random) | base64 -w 0)
         fi
     fi
     echo "${secret}"
@@ -803,8 +786,7 @@ Options:
  -bs : (enc) generate a new secret for each -b file
  -h hashToolOptions - : (enc|dec) default -h ${cskHashToolOptions[@]} -
  -su : (enc) use only /dev/urandom to generate secret
- -ss : (dec) legacy, use 512 byte secret
- -s file : (enc) read secret data (768 binary bytes encoded as 'base64 -w 0') from file
+ -s file : (enc) read secret data (512 binary bytes encoded as 'base64 -w 0') from file
  -as @file : (enc) session: read secret data from a session file (see -aso)
  -aso @outFile : (dec) session: write secret data to a encrypted file
  -apo @outFile : (dec) session: write password data to a encrypted file
@@ -979,9 +961,6 @@ function main()
             ;;
             -t)
                 cskTruncate="1"
-            ;;
-            -ss)
-                cskLongPass="0"
             ;;
             *)
                 logError "! unknown option: $current"

@@ -59,7 +59,7 @@ csmSecretFile=""
 csmSecretFiles=()
 slotOffsetFactor="2"
 csmContainerSize=""
-csmLongKey="1"
+csmUseSameKey="0"
 
 ########################################################################
 
@@ -608,10 +608,10 @@ function openContainerByName()
 
     local key1="$key"
     local key2="$key"
-    local keyLen=$(echo -n $key | base64 -d | wc -c)
-    if [ $keyLen -gt 512 ] && [ "$csmLongKey" = "1" ]; then
-        key1=$(echo -n $key | base64 -d | head -c 512 | base64 -w 0)
-        key2=$(echo -n $key | base64 -d | tail -c +513 | base64 -w 0)
+    #local keyLen=$(echo -n $key | base64 -d | wc -c)
+    if [ "$csmUseSameKey" != "1" ]; then
+        key1=$(echo -n $key | base64 -d | head -c 256 | base64 -w 0)
+        key2=$(echo -n $key | base64 -d | tail -c +257 | base64 -w 0)
     fi
 
     #echo "Key : ${key} @(${keyLen})"
@@ -1405,7 +1405,7 @@ Where [ options ]:
  -slots|sc count : overwrites -co -o parameter (default 4, use 0 for no slots)
  -s0 : same as -slots 0
  -slot|-es slot : (embed|extract) slot to use (default 1)
- -ss: (legacy) use same secret key for inner volume
+ -ss: use same secret key for inner volume
  -d : (embed) delete slot, if used with -s deletes next slot
  -q : (dc) no startup information
  -out: (chp) output file
@@ -1514,7 +1514,7 @@ function processOptions()
                 slotCount="0"
             ;;
             -ss)
-                csmLongKey="0"
+                csmUseSameKey="1"
             ;;
             -size|-S)
                 csmContainerSize="${2:?"! -size containerFileSize in M or G"}"
