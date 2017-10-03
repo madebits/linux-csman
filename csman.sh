@@ -56,6 +56,7 @@ embedSlot="1"
 csmOutFile=""
 slotCount=""
 csmSecretFile=""
+csmSecretFiles=()
 
 ########################################################################
 
@@ -1182,13 +1183,17 @@ function embedSecret()
     
     processOptions "$@"
     local slot=${embedSlot:-1}
-    local seek=$(("$slot" - 1))
-    local secretFile="$csmSecretFile"
-        
-    embedSecretInSlot "$containerFile" "$slot" "$secretFile"
+    #local secretFile="$csmSecretFile"
+    
+    local count="$slot"
+    for secretFile in "${csmSecretFiles[@]}"; do
+        embedSecretInSlot "$containerFile" "$count" "$secretFile"
+        count=$((count+1))
+    done
     log Done
 }
 
+# container slot secretFile
 function embedSecretInSlot()
 {
     local containerFile="$1"
@@ -1209,7 +1214,7 @@ function embedSecretInSlot()
         onFailed "-s secret file required"
     fi
 
-    log "Storing secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * 2))) of device ${containerFile}"
+    log "Storing secret ${secretFile} in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * 2))) of device ${containerFile}"
     dd status=none conv=notrunc bs=1024 count=1 seek="$seek" if="$secretFile" of="$containerFile" > /dev/null
 }
 
@@ -1433,6 +1438,7 @@ function processOptions()
             ;;
             -s|-secret)
                 csmSecretFile="${2:?"! -s secretFile"}"
+                csmSecretFiles+=( "$csmSecretFile" )
                 shift
             ;;
             -l|-live)
