@@ -1375,7 +1375,7 @@ Where [ options ]:
  -size|-S : (create) size of container in M or G
  -co cryptsetup options -- : outer encryption layer
  -ci cryptsetup options -- : inner encryption layer
- -ck $kn options -- (@ $kn options @ can also be used)"
+ -ck $kn options -- (@ ... @ can also be used)"
  -cko $kn options -- : only for use with chp output
  -cf mkfs ext4 options -- : (create)
  -live|-l : (open) live
