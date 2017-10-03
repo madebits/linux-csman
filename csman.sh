@@ -54,6 +54,8 @@ csmOpenDiskLabel=""
 csmFileCheckFreeSpace="1"
 embedSlot="1"
 csmOutFile=""
+slotCount=""
+csmSecretFile=""
 
 ########################################################################
 
@@ -613,7 +615,7 @@ function openContainerByName()
     setVolumeLabel "$lastDev" "$device"
 }
 
-# name secret container rest
+# name container rest
 function openContainer()
 {
     local name=$(validName "${1:-}")
@@ -647,11 +649,16 @@ function openContainer()
         onFailed "${device} is already open (${csmIsContainerFileOpen})"
     fi
     
-    local secret="${1:-}"
-    checkArg "$secret" "secret"
-    shift
+    #local secret="${1:-}"
+    #checkArg "$secret" "secret"
+    #shift
     
     processOptions "$@"
+    local secret="$csmSecretFile"
+    if [ -z "$secret" ]; then
+        secret="$device"
+    fi
+    checkArg "$secret" "-s secret"
     
     if [ -n "$csmName" ]; then
         name=$(validName "${csmName}")
@@ -777,9 +784,9 @@ function createContainer()
     checkArg "$container" "container"
     shift
     
-    local secret="${1:-}"
-    checkArg "$secret" "secret"
-    shift
+    #local secret="${1:-}"
+    #checkArg "$secret" "secret"
+    #shift
 
     local size="${1:-}"
     checkArg "$size" "size"
@@ -821,6 +828,9 @@ function createContainer()
     fi
     
     processOptions "$@"
+    
+    local secret="$csmSecretFile"
+    checkArg "$secret" "-s secret"
     
     if [ "${csmCreateOverwriteOnly}" = "1" ]; then
         echo "# mode: overwrite only"
@@ -905,10 +915,16 @@ function createContainer()
     sleep 1
     closeContainerByName "$name"
     
+    if [ -n "$lastSecret" ] && [ -n "$slotCount" ] && [ "$slotCount" != "0" ]; then
+        echo "# Embedding ${secret} in first slot of ${container} (${secret} file can be removed or backed-up manually)"
+        embedSecret "$container"
+        touchFile "$lastSecret" "$lastSecretTime"
+        # backup copy
+    fi
+    
     echo "Done! To open container use:"
-    echo "$(basename -- "$0") open ${container} ${secret}"
+    echo "$(basename -- "$0") open ${container} -s ${secret} (options)"
 }
-
 
 ########################################################################
 
@@ -1148,15 +1164,22 @@ function embedSecret()
     fi
     shift
     
-    local secretFile="$1"
-    if [ ! -f "$secretFile" ]; then
-        onFailed "secret file required"
-    fi
-    shift
-    
     processOptions "$@"
+    
     local slot=${embedSlot:-1}
     local seek=$(("$slot" - 1))
+    local secretFile="$csmSecretFile"
+
+    if [ "$secretFile" = "-" ]; then
+        log "Storing secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * 2))) of device ${containerFile}"
+        cat - | dd conv=notrunc bs=1024 count=1 seek="$seek" of="$containerFile" > /dev/null
+        return
+    fi
+    
+    if [ ! -f "$secretFile" ]; then
+        onFailed "-s secret file required"
+    fi
+
     log "Storing secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * 2))) of device ${containerFile}"
     dd conv=notrunc bs=1024 count=1 seek="$seek" if="$secretFile" of="$containerFile" > /dev/null
     log Done
@@ -1170,12 +1193,21 @@ function extractSecret()
     fi
     shift
     
-    local secretFile="$1"
-    shift
-    
     processOptions "$@"
+    
     local slot=${embedSlot:-1}
     local skip=$(("$slot" - 1))
+    local secretFile="$csmSecretFile"
+    
+    if [ "$secretFile" = "-" ]; then
+        dd bs=1024 count=1 skip="$skip" if="$containerFile"
+        return
+    fi
+    
+    if [ -z "$secretFile" ]; then
+        onFailed "-s secret file required"
+    fi
+
     log "Saving secret from slot ${slot} at byte offset $(("$skip" * 1024)) (cryptsetup -o $(("$skip" * 2))) to ${secretFile}"
     dd bs=1024 count=1 skip="$skip" if="$containerFile" of="$secretFile" > /dev/null
     log Done
@@ -1217,7 +1249,7 @@ function showHelp()
     local kn=$(basename -- "${csmkeyTool}")
     cat << EOF
 Usage:
- $bn open|o device secret [ openCreateOptions ]
+ $bn open|o device -s secret [ openCreateOptions ]
    if device and / or secret are: ? read from command line, or ! zenity
    ol  is same as open ... -l
    olr is same as open -l -r
@@ -1226,7 +1258,7 @@ Usage:
  $bn list|l
  $bn mount|m name
  $bn umount|u name
- $bn create|n container secret size [ openCreateOptions ]
+ $bn create|n container size -s secret [ openCreateOptions ]
    size should end in M or G
  $bn resize|r name
  $bn increase|i name bySize
@@ -1245,11 +1277,13 @@ Usage:
    clean free disk space in partition having dir
  $bn d|disk|disks
    can be used without sudo, runs df and lsblk
- $bn e|embed device secret
-   embed secret to device
- $bn ex|extract device secret
-   extract secret from device
+ $bn e|embed device -s secret
+   embed secret to device, if secret is - read from stdin
+ $bn ex|extract device -s secret
+   extract secret from device, if secret is - write to stdout
 Where [ openCreateOptions ]:
+ -s|-secret : (create|open|embed|extract) secret file
+     for open if not set container file is used
  -co cryptsetup options --- : outer encryption layer
  -ci cryptsetup options --- : inner encryption layer
  -ck $kn options ---"
@@ -1259,7 +1293,7 @@ Where [ openCreateOptions ]:
  -n name : (open) use csm-name
  -sl label : (open) set ext4 label
  -c : (open|create) clean screen after password entry
- -s : (open|create) use only one (outer) encryption layer
+ -one : (open|create) use only one (outer) encryption layer
  -u : (open) do not mount on open
  -r : (open) mount user read-only
  -e : (open) mount with exec option (default no exec)
@@ -1269,7 +1303,7 @@ Where [ openCreateOptions ]:
  -es|-slot slot : (embed|extract) slot to use (default 1)
  -q : (dc) no startup information
  -out: (chp) output file
- -sc|-slots slots : overwrites -co -o parameter
+ -sc|-slots slots : overwrites -co -o parameter (default 4, use 0 for no slots)
 Example:
  sudo csmap.sh open container.bin secret.bin -l -ck -k -h -p 8 -m 14 -t 1000 -- ---
 
@@ -1278,7 +1312,6 @@ EOF
 
 function processOptions()
 {
-    local slotCount=""
     while (( $# > 0 )); do
         local current="${1:-}"
         case "$current" in
@@ -1370,10 +1403,14 @@ function processOptions()
                 csmOutFile="${2:?"! -out outFile"}"
                 shift
             ;;
+            -s|-secret)
+                csmSecretFile="${2:?"! -s secretFile"}"
+                shift
+            ;;
             -l)
                 csmLive="1"
             ;;
-            -s)
+            -one)
                 csmChain="0"
             ;;
             -u)
@@ -1403,9 +1440,11 @@ function processOptions()
         esac
         shift
     done
-    
-    if [ -n "$slotCount" ]; then
-        local offset=$(($slotCount * 2))
+    if [ -z "$slotCount" ]; then
+        slotCount="4"
+    fi
+    if [ "$slotCount" != "0" ]; then
+        local offset=$(("$slotCount" * 2))
         local count="-1"
         local found=""
         for option in "${csOptions[@]}"; do
