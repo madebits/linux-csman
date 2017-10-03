@@ -13,7 +13,7 @@ set -eu -o pipefail
 
 if [ $(id -u) != "0" ]; then
     case "${1:-}" in
-        cp|rsync|dc|dcq)
+        cp|rsync|dc|dcq|d|disk|disks)
         ;;
         *)
             (>&2 echo "! needs sudo")
@@ -675,7 +675,7 @@ function openContainer()
 
 function testRndDataSource()
 {
-    openssl enc -aes-256-ctr -pass pass:"test" -nosalt < <(echo -n "test") > /dev/null
+    openssl enc -aes-256-ctr -pass pass:"test" -nosalt < <(echo -n "test") > /dev/null 2>/dev/null
 }
 
 function rndDataSource()
@@ -689,6 +689,19 @@ function rndDataSource()
     set -e
 }
 
+# file
+function createDir()
+{
+    local file="$1"
+    if [ -S "${file}" ]; then
+        return
+    fi
+    local dir=$(dirname -- "${file}")
+    if [ dir != "." ]; then
+        mkdir -p -- "${dir}"
+    fi
+}
+
 # container bs count seek
 function ddContainer()
 {
@@ -696,6 +709,8 @@ function ddContainer()
     local bs="$2"
     local count="$3"
     local seek="${4:-}"
+
+    createDir "$container"
 
     if [ -z "$seek" ]; then
         time rndDataSource | dd iflag=fullblock of="$container" bs="$bs" count="$count" status=progress conv=fdatasync
@@ -1180,6 +1195,8 @@ Usage:
  $bn dc dir
     can be used without sudo, default dir is .
     clean free disk space in partition having dir
+ $bn d|disk|disks
+    can be used without sudo, runs df and lsblk
 Where [ openCreateOptions ]:
  -co cryptsetup options --- : outer encryption layer
  -ci cryptsetup options --- : inner encryption layer
@@ -1409,6 +1426,12 @@ function main()
         ;&
         dc)
             dcCleanFreeDiskSpace "$@"
+        ;;
+        d|disk|disks)
+            echo -e "# Disks:\n"
+            df -h -T -x tmpfs -x devtmpfs -x squashfs
+            echo -e "\n# Devices:\n"
+            lsblk -e 7,252
         ;;
         *)
             showHelp

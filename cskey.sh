@@ -84,6 +84,19 @@ function checkNumber()
 }
 
 # file
+function createDir()
+{
+    local file="$1"
+    if [ -S "${file}" ]; then
+        return
+    fi
+    local dir=$(dirname -- "${file}")
+    if [ dir != "." ]; then
+        mkdir -p -- "${dir}"
+    fi
+}
+
+# file
 function touchFile()
 {
     local file="$1"
@@ -182,6 +195,7 @@ function encodeSecret()
         file="/dev/stdout"
     fi
     
+    createDir "$file"
     > "$file"
     echo -n "$salt" | base64 -d >> "$file"
     echo -n "$secret" | base64 -d | encryptAes "$hash" >> "$file"
@@ -632,6 +646,7 @@ function createRndFile()
             local pad=$(printf "%02d" ${i})
             local file="${1}.${pad}"
             logError "$file"
+            createDir "$file"
             head -c "$cskRndLen" /dev/urandom > "$file"
         }
     fi
