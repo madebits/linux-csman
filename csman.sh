@@ -50,6 +50,13 @@ function failed()
     kill -9 "$currentScriptPid"
 }
 
+function log()
+{
+    set +e
+    echo "$@"
+    set -e
+}
+
 function logError()
 {
     (>&2 echo "$@")
@@ -318,14 +325,14 @@ function closeContainerByName()
         cryptsetup close "$name"
     fi
     resetTime
-    echo " Closed ${name} !"
+    log " Closed ${name} !"
 }
 
 # name
 function closeContainer()
 {
     local name=$(validName "${1:-}")
-    echo "Closing ${name} ..."
+    log "Closing ${name} ..."
     umountContainer "$name"
     closeContainerByName "$name"
 }
@@ -342,7 +349,7 @@ function closeAll()
         case "${1:-}" in
             1)
             listContainer "$name"
-            echo
+            log
             ;;
             2)
                 if isSameContainerFile "$name" "${2:-}" ; then
@@ -955,10 +962,16 @@ function changePassword()
 
 function cleanUp()
 {
-    tput sgr 0
-    echo
-    closeContainer "$lastName"
-    exit 0
+    local name="$lastName"
+    lastName=""
+    if [ -n "$name" ]; then
+        set +e
+        tput sgr 0
+        echo
+        set -e
+        closeContainer "$name"
+        exit 0
+    fi
 }
 
 function showChecksum()
@@ -1151,7 +1164,7 @@ function main()
         open|o)
             openContainer "-" "$@"
             if [ "$csmLive" = "1" ]; then
-                trap cleanUp SIGHUP SIGINT SIGTERM ABRT QUIT
+                trap cleanUp 0 SIGHUP SIGINT SIGQUIT SIGTERM SIGABRT SIGQUIT
                 tput setaf 1
                 read -p "Press Enter twice or Ctrl+C to close the container ..."
                 logError
