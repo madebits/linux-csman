@@ -1406,6 +1406,7 @@ Where [ options ]:
  -s0 : same as -slots 0
  -slot|-es slot : (embed|extract) slot to use (default 1)
  -ss: use same secret key for inner volume
+ -sss: same as -s0 and -ss
  -d : (embed) delete slot, if used with -s deletes next slot
  -q : (dc) no startup information
  -out: (chp) output file
@@ -1514,6 +1515,10 @@ function processOptions()
                 slotCount="0"
             ;;
             -ss)
+                csmUseSameKey="1"
+            ;;
+            -sss)
+                slotCount="0"
                 csmUseSameKey="1"
             ;;
             -size|-S)

@@ -365,6 +365,11 @@ function readKeyFiles()
 
         keyFile="${keyFile/#\~/$HOME}"
         keyFile="$(realpath -- "$keyFile")"
+
+        if [ -z "$keyFile" ] || [ -d "$keyFile" ]; then
+            break
+        fi
+
         if [ ! -f "$keyFile" ]; then
             logError "# no such file: ${keyFile}"
             count=$((count-1))
@@ -372,6 +377,7 @@ function readKeyFiles()
             cskKeyFiles+=( "$(keyFileHash "$keyFile")" )
         fi
         lastDir="$(dirname -- "$keyFile")/"
+        lastDir="${lastDir/#$HOME/\~}"
     done
     logError
 }
@@ -517,6 +523,7 @@ function encryptFile()
     local file="$1"
     if [ "${file}" = "?" ]; then
         read -e -p "Secret file (or Enter if none): " file
+        file="${file/#\~/$HOME}"
         logError
     #elif [ "${file}" = "!" ]; then
     #    file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
@@ -538,6 +545,7 @@ function decryptFile()
     local file="$1"
     if [ "$file" = "?" ]; then
         read -e -p "Secret file (or Enter if none): " file
+        file="${file/#\~/$HOME}"
         logError
     #elif [ "$file" = "!" ]; then
     #    file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
