@@ -352,6 +352,11 @@ function readKeyFiles()
     fi
 
     local lastDir=""
+    if [ -f "$1" ]; then
+        lastDir="$(dirname -- "$1")/"
+        lastDir="${lastDir/#$HOME/\~}"
+    fi
+
     while :
     do
         count=$((count+1))
@@ -530,7 +535,7 @@ function encryptFile()
     fi
 
     logError "# Encoding secret in: $file (at byte offset ${cskDecodeOffset:-0}, slot=$((${cskDecodeOffset:-0} / 1024 + 1))) (-c $useAes)"
-    readKeyFiles
+    readKeyFiles "$file"
     local pass
     pass=$(readNewPass)
     local secret
@@ -556,7 +561,7 @@ function decryptFile()
         onFailed "no such file: $file"
     fi
 
-    readKeyFiles
+    readKeyFiles "$file"
     local pass
     pass=$(readPass)
     debugData "PASS" "$pass"
