@@ -356,7 +356,7 @@ function readKeyFiles()
     do
         count=$((count+1))
 
-        read -i "$lastDir" -e -p "Key file $count (Ctrl+U clean, Enter if none) [@ $(dirs +0) ]: " keyFile
+        read -i "$lastDir" -e -p "Key file $count (Ctrl+U clear, Enter if none) [@ $(dirs +0) ]: " keyFile
         #logError
 
         if [ -z "$keyFile" ] || [ -d "$keyFile" ]; then
