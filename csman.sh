@@ -20,7 +20,7 @@ if [ $(id -u) != "0" ]; then
             #exit 1
             #pass="$(zenity --password --title='Sudo Password' 2> /dev/null)"
             #exec echo "$pass" | sudo -S "$0" "$@"
-            exec sudo -S "$0" "$@"
+            exec /usr/bin/sudo -S "$0" "$@"
             exit $?
         ;;
     esac
