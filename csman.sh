@@ -1077,7 +1077,7 @@ function dcCleanFreeDiskSpace()
     dcPrintAvailable
     while : ; do
         count=$((count+1))
-        echo -n +
+        echo -n "+${count}"
         set +e
         dd if=/dev/zero iflag=fullblock count=1024 bs=1M conv=fdatasync >> "${dcDir}/zero.${count}" 2>/dev/null
         res=$?
@@ -1088,7 +1088,7 @@ function dcCleanFreeDiskSpace()
             break;
         fi
     done
-
+    echo " "
     while : ; do
         count=$((count+1))
         set +e
