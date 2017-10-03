@@ -832,6 +832,10 @@ function createContainer()
     processOptions "$@"
     
     local secret="$csmSecretFile"
+    if [ -z "$secret" ] && [ -n "$slotCount" ] && [ "$slotCount" -gt "0" ] ; then
+        echo "# no separate secret file"
+        secret="$container"
+    fi
     checkArg "$secret" "-s secret"
     
     if [ "${csmCreateOverwriteOnly}" = "1" ]; then
@@ -878,7 +882,7 @@ function createContainer()
         return
     fi
     
-    if [ -f "$secret" ] && [ "$secret" != "--" ]; then
+    if [ -f "$secret" ] && [ "$secret" != "--" ] && [ ! "$container" -ef "$secret" ]; then
         lastSecret="$secret"
         lastSecretTime=$(stat -c %z "$secret")
         read -p "Overwrite secret file $secret [y | Enter to reuse]: " overwriteSecret
@@ -917,7 +921,7 @@ function createContainer()
     sleep 1
     closeContainerByName "$name"
     
-    if [ -n "$secret" ] && [ "$secret" != "--" ] && [ -f "$secret" ] && [ -n "$slotCount" ] && [ "$slotCount" -gt "0" ]; then
+    if [ -n "$secret" ] && [ "$secret" != "--" ] && [ -f "$secret" ] && [ -n "$slotCount" ] && [ "$slotCount" -gt "0" ] && [ ! "$container" -ef "$secret" ] ; then
         embedSecretOnCreate "${secret}" "1" "${container}"
         embedSecretOnCreate "${secret}.01" "2" "${container}"
         embedSecretOnCreate "${secret}.02" "3" "${container}"

@@ -469,7 +469,7 @@ function encryptFile()
         file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
     fi
     
-    logError "# Encoding secret in: $file"
+    logError "# Encoding secret in: $file (at byte offset ${cskDecodeOffset:-0}, slot=$((${cskDecodeOffset:-0} / 1024 + 1)))"
     readKeyFiles
     local pass=$(readNewPass)
     local secret=$(getSecret)
