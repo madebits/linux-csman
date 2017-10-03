@@ -706,8 +706,7 @@ Options:
  -rb count : (rnd) generate file.count files
  -d : dump password and secret on stderr for debug
  -o : (dec) read from offset in bytes, default 0
- -os: (dec) read from slot, default 1 is same as -o 0 and -os 1 is same as -o 1024
- -es: (dec) same as -os
+ -os|-es|-slot slot: (dec) read from slot, default 1 is same as -o 0 and -os 1 is same as -o 1024
 Examples:
 EOF
 echo ' sudo bash -c '"'"'secret=$(cskey.sh dec d.txt | base64 -w 0) && cskey.sh enc d.txt -s <(echo -n "$secret") -d'"'"''
@@ -848,7 +847,7 @@ function main()
                 cskDecodeOffset="${2:-0}"
                 shift
             ;;
-            -os|-es)
+            -os|-es|-slot)
                 local slot="${2:-1}"
                 shift
                 cskDecodeOffset=$((("$slot" - 1) * 1024))

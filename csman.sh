@@ -1266,7 +1266,7 @@ Where [ openCreateOptions ]:
  -sfc : (create) skip free disk space check for files
  -oo : (create) dd only
  -lk : (list) list raw keys
- -es slot : (embed|extract) slot to use (default 1)
+ -es|-slot slot : (embed|extract) slot to use (default 1)
  -q : (dc) no startup information
  -out: (chp) output file
  -sc|-slots slots : overwrites -co -o parameter
@@ -1358,7 +1358,7 @@ function processOptions()
                 csmOpenDiskLabel="${2:-}"
                 shift
             ;;
-            -es)
+            -es|-slot)
                 embedSlot="${2:-1}"
                 shift
             ;;
