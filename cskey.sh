@@ -200,7 +200,9 @@ function encodeSecret()
     echo -n "$salt" | base64 -d >> "$file"
     echo -n "$secret" | base64 -d | encryptAes "$hash" >> "$file"
     # random file size
-    local r=$((1 + RANDOM % 512))
+    local secretLength=$(encryptedSecretLength)
+    local maxRndLength=$((1024 - $secretLength))
+    local r=$((1 + RANDOM % $maxRndLength))
     head -c "$r" /dev/urandom >> "$file"
     ownFile "$file"
     touchFile "$file"
