@@ -283,8 +283,7 @@ function decodeSecret()
     if [ -e "$file" ] || [ "$file" = "-" ]; then
         debugData "Read at offset ${cskDecodeOffset:-0}"
         local offset=$((${cskDecodeOffset:-0} + 1))
-        local fileData
-        fileData=$(tail -c +${offset} -- "$file" | head -c "$length" | base64 -w 0)
+        local fileData=$(tail -c +${offset} -- "$file" | head -c "$length" | base64 -w 0)
         if [ "$file" != "-" ]; then
             touchFile "$file"
         fi
