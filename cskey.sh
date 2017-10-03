@@ -100,7 +100,8 @@ function createDir()
         return
     fi
     if [ -f "$file" ]; then
-        local dir=$(dirname -- "${file}")
+        local dir
+        dir=$(dirname -- "${file}")
         if [ dir != "." ]; then
             mkdir -p -- "${dir}"
         fi
@@ -112,7 +113,8 @@ function touchFile()
 {
     local file="$1"
     if [ -f "$file" ]; then
-        local md=$(stat -c %z -- "$file")
+        local md
+        md=$(stat -c %z -- "$file")
         set +e
         touch -d "$md" -- "$file" 2> /dev/null
         set -e
@@ -217,7 +219,8 @@ function encodeSecret()
     local maxRndLength=$((1024 - $secretLength - 32))
     local r=$((RANDOM % $maxRndLength))
         
-    local salt=$(head -c 32 /dev/urandom | base64 -w 0)
+    local salt
+    salt=$(head -c 32 /dev/urandom | base64 -w 0)
     hash=$(pass2hash "$pass" "$salt")
         
     if [ "$file" = "-" ]; then
@@ -271,7 +274,8 @@ function decodeSecret()
     # weak shortcut, ok to use for something quick, once a while
     if [ "$1" = "--" ]; then
         # we put only part of pass hash in command line here!
-        local sps="$(echo -n "$pass" | sha256sum | cut -d ' ' -f 1 | tr -d '\n' | head -c 32)"
+        local sps
+        sps="$(echo -n "$pass" | sha256sum | cut -d ' ' -f 1 | tr -d '\n' | head -c 32)"
         pass2hash "$pass" "$sps"
         return
     fi
@@ -279,17 +283,21 @@ function decodeSecret()
     if [ -e "$file" ] || [ "$file" = "-" ]; then
         debugData "Read at offset ${cskDecodeOffset:-0}"
         local offset=$((${cskDecodeOffset:-0} + 1))
-        local fileData=$(tail -c +${offset} -- "$file" | head -c "$length" | base64 -w 0)
+        local fileData
+        fileData=$(tail -c +${offset} -- "$file" | head -c "$length" | base64 -w 0)
         if [ "$file" != "-" ]; then
             touchFile "$file"
         fi
         if [ -z "$fileData" ]; then
             onFailed "cannot read: $file"
         fi
-        local salt=$(echo -n "$fileData" | base64 -d | head -c 32 | base64 -w 0)
-        local data=$(echo -n "$fileData" | base64 -d | tail -c +33 | head -c "${secretLength}" | base64 -w 0)
+        local salt
+        salt=$(echo -n "$fileData" | base64 -d | head -c 32 | base64 -w 0)
+        local data
+        data=$(echo -n "$fileData" | base64 -d | tail -c +33 | head -c "${secretLength}" | base64 -w 0)
         #debugData "data $data"
-        local hash=$(pass2hash "$pass" "$salt")
+        local hash
+        hash=$(pass2hash "$pass" "$salt")
         touchFile "$file"
         if [ -n "${cskSessionSecretFile}" ]; then
             readSessionPass
@@ -460,7 +468,8 @@ function encodeMany()
     fi
     for ((i=1 ; i <= $count; i++))
     {
-        local pad=$(printf "%02d" ${i}) # printf -v padd "..."
+        local pad
+        pad=$(printf "%02d" ${i}) # printf -v padd "..."
         local file="${f}.${pad}"
         logError "$file"
         if [ "$cskBackupNewSecret" = "1" ]; then
@@ -487,8 +496,10 @@ function encryptFile()
     
     logError "# Encoding secret in: $file (at byte offset ${cskDecodeOffset:-0}, slot=$((${cskDecodeOffset:-0} / 1024 + 1))) (-c $useAes)"
     readKeyFiles
-    local pass=$(readNewPass)
-    local secret=$(getSecret)
+    local pass
+    pass=$(readNewPass)
+    local secret
+    secret=$(getSecret)
     encodeMany "$file" "$pass" "$secret"
     logError "# Done"
 }
@@ -510,7 +521,8 @@ function decryptFile()
     fi
 
     readKeyFiles
-    local pass=$(readPass)
+    local pass
+    pass=$(readPass)
     if [ -n "${cskSessionSaveDecodePassFile}" ]; then
         createSessionPass "${cskSessionSaveDecodePassFile}" "$pass"
     fi
@@ -536,7 +548,8 @@ function createSessionStore()
 {
     local fs="${cskSessionLocation}"
     mkdir -p "$fs"
-    local tfs=$(mount | grep "$fs" | cut -d ' ' -f 1)
+    local tfs
+    tfs=$(mount | grep "$fs" | cut -d ' ' -f 1)
     if [ "${tfs}" != "tmpfs" ]; then
         logError "# session: creating tmpfs store in ${fs} (use -ar to choose another)"
         logError
@@ -597,7 +610,8 @@ function readSessionPassFromFile()
         if [ -z "$cskSessionKey" ]; then
             onFailed "no session key"
         fi
-        local p=$(cat -- "$1" | base64 -w 0)
+        local p
+        p=$(cat -- "$1" | base64 -w 0)
         if [ -z "$p" ]; then
             onFailed "cannot read session password from: ${1}"
         fi
@@ -658,7 +672,8 @@ function loadSessionPass()
     fi
     readSessionPass
     set +e
-    local pass=$(readSessionPassFromFile "$file")
+    local pass
+    pass=$(readSessionPassFromFile "$file")
     set -e
     if [ -z "${pass}" ] || [ "${pass: -5}" != "CSKEY" ]; then
         debugData "${pass}"
