@@ -710,8 +710,6 @@ function ddContainer()
     local count="$3"
     local seek="${4:-}"
 
-    createDir "$container"
-
     if [ -z "$seek" ]; then
         time rndDataSource | dd iflag=fullblock of="$container" bs="$bs" count="$count" status=progress conv=fdatasync
         #sudo -u "$user" dd iflag=fullblock if=/dev/urandom of="$container" bs="$bs" count="$count" status=progress
@@ -843,6 +841,7 @@ function createContainer()
             checkFreeSpace "${size}" "${sizeNum}"
     
             echo "Creating ${container} with ${sizeNum}${size: -1} ..."
+            createDir "${container}"
             if [ "${size: -1}" = "G" ]; then
                 ddContainer "$container" "1G" "$sizeNum"
             elif [ "${size: -1}" = "M" ]; then
