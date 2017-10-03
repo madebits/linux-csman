@@ -14,7 +14,7 @@ set -eu -o pipefail
 if [ "$#" -gt "0" ]; then
     if [ $(id -u) != "0" ]; then
         case "${1:-}" in
-            cp|rsync|dc|dcq|d|disk|disks)
+            cp|rsync|dc|dcq|d|disk|disks|e|embed|ex|extract)
             ;;
             *)
                 #(>&2 echo "! needs sudo")
@@ -52,6 +52,7 @@ csmListShowKey="0"
 csmCreateOverwriteOnly="0"
 csmOpenDiskLabel=""
 csmFileCheckFreeSpace="1"
+embedSlot="1"
 
 ########################################################################
 
@@ -1140,6 +1141,49 @@ function dcCleanFreeDiskSpace()
 
 ########################################################################
 
+function embedSecret()
+{
+    local containerFile="$1"
+    if [ ! -e "$containerFile" ]; then
+        onFailed "container file required"
+    fi
+    shift
+    
+    local secretFile="$1"
+    if [ ! -f "$secretFile" ]; then
+        onFailed "secret file required"
+    fi
+    shift
+    
+    processOptions "$@"
+    local slot=${embedSlot:-1}
+    local seek=$(("$slot" - 1))
+    log "Storing secret in slot ${slot} at byte offset $(("$seek" * 1024)) (cryptsetup -o $(("$seek" * 2))) of device ${containerFile}"
+    dd conv=notrunc bs=1024 count=1 seek="$seek" if="$secretFile" of="$containerFile" > /dev/null
+    log Done
+}
+
+function extractSecret()
+{
+    local containerFile="$1"
+    if [ ! -e "$containerFile" ]; then
+        onFailed "container file required"
+    fi
+    shift
+    
+    local secretFile="$1"
+    shift
+    
+    processOptions "$@"
+    local slot=${embedSlot:-1}
+    local skip=$(("$slot" - 1))
+    log "Saving secret from slot ${slot} at byte offset $(("$skip" * 1024)) (cryptsetup -o $(("$skip" * 2))) to ${secretFile}"
+    dd bs=1024 count=1 skip="$skip" if="$containerFile" of="$secretFile" > /dev/null
+    log Done
+}
+
+########################################################################
+
 function cleanUp()
 {
     local name="$lastName"
@@ -1202,6 +1246,10 @@ Usage:
    clean free disk space in partition having dir
  $bn d|disk|disks
    can be used without sudo, runs df and lsblk
+ $bn e|embed device secret
+   embed secret to device
+ $bn ex|extract device secret
+   extract secret from device
 Where [ openCreateOptions ]:
  -co cryptsetup options --- : outer encryption layer
  -ci cryptsetup options --- : inner encryption layer
@@ -1216,9 +1264,11 @@ Where [ openCreateOptions ]:
  -u : (open) do not mount on open
  -r : (open) mount user read-only
  -e : (open) mount with exec option (default no exec)
- -lk : (list) list raw keys
  -sfc : (create) skip free disk space check for files
  -oo : (create) dd only
+ -lk : (list) list raw keys
+ -es slot : (embed|extract) slot to use (default 1)
+ -q : (dc) no startup information
 Example:
  sudo csmap.sh open container.bin secret.bin -l -ck -k -h -p 8 -m 14 -t 1000 -- ---
 
@@ -1304,6 +1354,10 @@ function processOptions()
             ;;
             -sl)
                 csmOpenDiskLabel="${2:-}"
+                shift
+            ;;
+            -es)
+                embedSlot="${2:-1}"
                 shift
             ;;
             -l)
@@ -1437,6 +1491,12 @@ function main()
             df -h -T -x tmpfs -x devtmpfs -x squashfs
             echo -e "\n# Devices:\n"
             lsblk | grep -vE 'loop|ram'
+        ;;
+        e|embed)
+            embedSecret "$@"
+        ;;
+        ex|extract)
+            extractSecret "$@"
         ;;
         *)
             showHelp
