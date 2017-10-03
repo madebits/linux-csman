@@ -12,10 +12,12 @@ IFS=$' \t\n'
 set -eu -o pipefail
 
 if [ $(id -u) != "0" ]; then
-    (>&2 echo "! needs sudo")
-    #exit 1
-    pass="$(zenity --password --title='Sudo Password' 2> /dev/null)"
-    exec echo "$pass" | sudo -S "$0" "$@"
+    if [ "${1:-}" != "cp" ]; then
+        (>&2 echo "! needs sudo")
+        #exit 1
+        pass="$(zenity --password --title='Sudo Password' 2> /dev/null)"
+        exec echo "$pass" | sudo -S "$0" "$@"
+    fi
 fi
 
 user="${SUDO_USER:-$(whoami)}"
@@ -960,6 +962,31 @@ function changePassword()
 
 ########################################################################
 
+function copyDir()
+{
+    local src="${1:-}"
+    local dst="${2:-}"
+    checkArg "$src" "src"
+    checkArg "$dst" "dstDir"
+
+    local srcFull="$(realpath -- "${src}")"
+    local srcParent="$(dirname -- "${srcFull}")"
+    local srcDir="$(basename -- ${srcFull})"
+    
+    local totalSize="$( du -cs -BK --apparent-size "${src}" |
+              tail -n 1 |
+              cut -d "$(echo -e "\t")" -f 1)"
+    local totalSizeNum=${totalSize::-1}          
+    echo "Copy: ${srcFull}: ${totalSize} ~ $(( totalSizeNum / 1024 ))M ~ $(( totalSizeNum/1024/1024 ))G => $(realpath -- "${dst}/${srcDir}")"
+    
+    mkdir -p -- "${dst}"
+    tar -cf - -C "${srcParent}" "${srcDir}" |
+        pv -s "${totalSize}" |
+        ( cd -- "${dst}"; tar -xf - )
+}
+
+########################################################################
+
 function cleanUp()
 {
     local name="$lastName"
@@ -1011,6 +1038,8 @@ Usage:
  $bn synctime|st
  $bn chp inFile [outFile] [ openCreateOptions ] : only -ck -cko are used
  $bn k ... : invoke $kn ...
+ $bn cp src dstDir
+    can be used without sudo
 Where [ openCreateOptions ]:
  -co cryptsetup options --- : outer encryption layer
  -ci cryptsetup options --- : inner encryption layer
@@ -1221,6 +1250,9 @@ function main()
         ;;
         k)
             "${csmkeyTool}" "$@"
+        ;;
+        cp)
+            copyDir "$@"
         ;;
         *)
             showHelp
