@@ -1008,9 +1008,10 @@ function changePassword()
     shift
     processOptions "$@"
     local ofile="${csmOutFile}"
-    if [ -z "$ofile" ]; then
-        ofile="$ifile"
-    fi
+    checkArg "$ofile" "-out file"
+    #if [ -z "$ofile" ]; then
+    #    ofile="$ifile"
+    #fi
     echo "# Decoding ${ifile} ..."
     local secret=$("${csmkeyTool}" dec "${ifile}" "${ckOptions[@]}" | base64 -w 0)
     if [ -z "${secret}" ]; then
