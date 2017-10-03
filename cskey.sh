@@ -41,7 +41,7 @@ cskSessionKey=""
 cskSessionAutoKey="0"
 cskSessionAutoKeyFile=""
 cskSessionSaltFile=""
-cskSessionLocation="$HOME/mnt/tmpcsm"
+
 cskSessionPassFile=""
 cskSessionSecretFile=""
 cskSessionSaveDecodePassFile=""
@@ -52,9 +52,12 @@ cskDecodeOffset=""
 cskTruncate="0"
 
 user="${SUDO_USER:-$(whoami)}"
+userHome="$(getent passwd ${SUDO_USER:-$USER} | cut -d: -f6)"
 currentScriptPid=$$
 toolsDir="$(dirname $0)"
 useAes="1"
+cskSessionLocation="${userHome}/mnt/tmpcsm"
+
 #if [ -f "${toolsDir}/aes" ]; then
 #    useAes="1"
 #fi
@@ -354,7 +357,7 @@ function readKeyFiles()
     local lastDir=""
     if [ -f "$1" ]; then
         lastDir="$(dirname -- "$1")/"
-        lastDir="${lastDir/#$HOME/\~}"
+        lastDir="${lastDir/#${userHome}/\~}"
     fi
 
     while :
@@ -368,7 +371,7 @@ function readKeyFiles()
             break
         fi
 
-        keyFile="${keyFile/#\~/$HOME}"
+        keyFile="${keyFile/#\~/${userHome}}"
         keyFile="$(realpath -- "$keyFile")"
 
         if [ -z "$keyFile" ] || [ -d "$keyFile" ]; then
@@ -382,7 +385,7 @@ function readKeyFiles()
             cskKeyFiles+=( "$(keyFileHash "$keyFile")" )
         fi
         lastDir="$(dirname -- "$keyFile")/"
-        lastDir="${lastDir/#$HOME/\~}"
+        lastDir="${lastDir/#${userHome}/\~}"
     done
     logError
 }
@@ -528,7 +531,7 @@ function encryptFile()
     local file="$1"
     if [ "${file}" = "?" ]; then
         read -e -p "Secret file (or Enter if none): " file
-        file="${file/#\~/$HOME}"
+        file="${file/#\~/${userHome}}"
         logError
     #elif [ "${file}" = "!" ]; then
     #    file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
@@ -550,7 +553,7 @@ function decryptFile()
     local file="$1"
     if [ "$file" = "?" ]; then
         read -e -p "Secret file (or Enter if none): " file
-        file="${file/#\~/$HOME}"
+        file="${file/#\~/${userHome}}"
         logError
     #elif [ "$file" = "!" ]; then
     #    file="$(zenity --file-selection --title='Select Secret File' 2> /dev/null)"
@@ -768,7 +771,7 @@ function createRndFile()
 
 function clearSessionTempDir()
 {
-    local tfs="$HOME/mnt/tmpcsm"
+    local tfs="${userHome}/mnt/tmpcsm"
     if [ -d "${tfs}" ]; then
         set +e
         mountpoint "${tfs}" &>/dev/null
