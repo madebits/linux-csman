@@ -408,6 +408,11 @@ function readPassFromFile()
 
 function readPassword()
 {
+    if [ -n "$cskSessionPassFile" ]; then
+        echo "$cskSessionPassFile"
+        return
+    fi
+
     if [ -n "$cskPassFile" ]; then
         pass="$cskPassFile"
     elif [ "$cskInputMode" = "1" ] || [ "$cskInputMode" = "e" ] || [ "$cskInputMode" = "echo" ]; then
@@ -437,11 +442,6 @@ function readPassword()
 
 function readPass()
 {
-    if [ -n "$cskSessionPassFile" ]; then
-        echo "$cskSessionPassFile"
-        return
-    fi
-
     local hash=$(computeKeyFilesHash)
     local pass=$(readPassword "${1:-}")
     pass="${pass}${hash}"
@@ -555,6 +555,7 @@ function decryptFile()
     readKeyFiles
     local pass
     pass=$(readPass)
+    debugData "PASS" "$pass"
     if [ -n "${cskSessionSaveDecodePassFile}" ]; then
         createSessionPass "${cskSessionSaveDecodePassFile}" "$pass"
     fi
@@ -678,8 +679,7 @@ function createSessionPass()
     logError
     #logError "# session: creating password file: ${cskSessionSaveDecodePassFile}"
     if [ -z "$pass" ]; then
-        readKeyFiles
-        pass=$(readPass)
+        pass=$(readPassword)
     fi
     readSessionPass
     debugData "${cskSessionKey}" "${pass}"
